@@ -1,6 +1,7 @@
 import numpy as np
 from pymoo.core.problem import ElementwiseProblem
 from pymoo.problems import get_problem
+from pymoo.core.sampling import Sampling
 
 class DiagnosticProblem(ElementwiseProblem):
 
@@ -98,3 +99,11 @@ class DiagnosticProblem(ElementwiseProblem):
 
                 total_score = np.sum(f)
                 out["F"] = np.asarray(f)
+
+
+class DiagnosticRandomSampling(Sampling):
+
+    def _do(self, problem, n_samples, **kwargs):
+        X = np.random.random((n_samples, problem.n_var))
+
+        return X
