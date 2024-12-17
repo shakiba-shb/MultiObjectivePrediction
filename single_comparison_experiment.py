@@ -22,7 +22,7 @@ from pymoo.indicators.hv import Hypervolume
 def experiment (alg = None, S = None, dim = None, n_gen = None, diagnostic_id = None, L = None, 
                 damp = None, epsilon = None, epsilon_type = None, seed = None, rdir = ""):
     runid = uuid.uuid4()
-    print("alg = ", alg, "S = ", S, "n_var = ", dim, "n_obj = ", dim, "n_gen = ", n_gen, "damp = ", damp,
+    print("alg = ", alg, "S = ", S, "n_var = ", dim, "n_obj = ", dim, "L = ", L, "n_gen = ", n_gen, "damp = ", damp,
            "epsilon = ", epsilon, "epsilon_type = ", epsilon_type, "seed = ", seed, "rdir = ", rdir, "runid = ", runid)
     
     #Define the problem
@@ -52,11 +52,11 @@ def experiment (alg = None, S = None, dim = None, n_gen = None, diagnostic_id = 
     ref_point = np.array([L]*problem.n_var)
     ind = Hypervolume(pf = opt_F, ref_point=ref_point)
     hv = ind._do(opt_F)
-    hv_norm = hv / np.prod(ref_point)
+    #hv_norm = hv / np.prod(ref_point)
     
-    result = {'alg': alg, 'S': S, 'dim':dim, 'n_gen':n_gen, 'diagnostic_id':diagnostic_id, 'L':L, 'hv':hv_norm, 'damp':damp, 'epsilon':epsilon, 
+    result = {'alg': alg, 'S': S, 'dim':dim, 'n_gen':n_gen, 'diagnostic_id':diagnostic_id, 'L':L, 'hv':float(hv), 'damp':damp, 'epsilon':epsilon, 
               'epsilon_type':epsilon_type, 'seed':seed, 'rdir':rdir}
-    
+    print(result)
     final_population_data = {'X': X.tolist(), 'F': F.tolist(), 'opt_X': opt_X.tolist(), 'opt_F': opt_F.tolist()}
 
     filename = rdir + f'/runid-{runid}.json'
@@ -78,13 +78,13 @@ if __name__ == "__main__":
     parser.add_argument('-alg', type=str, default = 'Lexicase', help='Algorithm to use')
     parser.add_argument('-S', type=int, default = 100, help='Population size')
     parser.add_argument('-dim', type=int, default = 5, help='Number of objectives/variables')
-    parser.add_argument('-n_gen', type=int, default = 50000, help='Number of generations')
+    parser.add_argument('-n_gen', type=int, default = 50, help='Number of generations')
     parser.add_argument('-diagnostic_id', type=int, default = 5, help='Diagnostic problem id')
     parser.add_argument('-L', type=int, default = 10, help='Search space limit')
     parser.add_argument('-damp', type=float, default = 1.0, help='Dampening factor')
     parser.add_argument('-epsilon', type=float, default = 0.0, help='Epsilon value')
     parser.add_argument('-epsilon_type', type=int, default = 0, help='Epsilon type')
-    parser.add_argument('-seed', type=int, default = 0, help='Random seed')
+    parser.add_argument('-seed', type=int, default = 14724, help='Random seed')
     parser.add_argument('-rdir', type=str, default = 'results', help='Results directory')
     args = parser.parse_args()
 
