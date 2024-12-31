@@ -19,6 +19,7 @@ from pymoo.termination import get_termination
 from pymoo.optimize import minimize
 from pymoo.indicators.hv import Hypervolume
 from pymoo.indicators.gd import GD
+from pymoo.indicators.spacing import SpacingIndicator
 
 def sample_true_pf(D, L, sample_size):
     """
@@ -85,7 +86,10 @@ def experiment (S = None, dim = None, n_gen = None, diagnostic_id = None, L = No
         gd = indgd(opt_F)
         print("GD: ", gd)
 
-        result = {'alg': alg, 'S': S, 'dim':dim, 'n_gen':n_gen, 'diagnostic_id':diagnostic_id, 'L':L, 'GD':float(gd), 'damp':damp, 'epsilon':epsilon, 
+        indspace = SpacingIndicator()
+        spacing = indspace(opt_F)
+
+        result = {'alg': alg, 'S': S, 'dim':dim, 'n_gen':n_gen, 'diagnostic_id':diagnostic_id, 'L':L,'GD':float(gd),'spacing':float(spacing), 'damp':damp, 'epsilon':epsilon, 
                 'epsilon_type':epsilon_type, 'seed':seed, 'rdir':rdir}
         print(result)
         final_population_data = {'X': X.tolist(), 'F': F.tolist(), 'opt_X': opt_X.tolist(), 'opt_F': opt_F.tolist()}
