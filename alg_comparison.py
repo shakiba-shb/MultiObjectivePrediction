@@ -107,7 +107,7 @@ def sample_true_pf(D, L, sample_size):
     return np.array([np.array(point) for point in sample_pf])
 
 ##### Parameters
-pop_size = 200
+pop_size = 100
 n_var = 3
 n_obj = n_var
 n_gen = 100
@@ -170,6 +170,7 @@ print("HV: ", hv)
 
 ##### Generational distance
 from pymoo.indicators.gd import GD
+from pymoo.indicators.igd import IGD
 
 # 2d example
 # if opt_F.shape[1] == 2:
@@ -195,9 +196,13 @@ from pymoo.indicators.gd import GD
     
 true_pf = sample_true_pf(n_obj, xu, pop_size)
 indgd = GD(pf = true_pf)
-#gd = indgd._do(opt_F)
+indigd = IGD(pf = true_pf)
+
 gd = indgd(opt_F)
+igd = indigd(opt_F)
+
 print("GD: ", gd)
+print("IGD: ", igd)
 
 ##### Spacing Indicator
 from pymoo.indicators.spacing import SpacingIndicator
@@ -272,7 +277,7 @@ fig.update_layout(
         yaxis_title='Objective 2',
         zaxis_title='Objective 3',
     ),
-    title=f'{alg}<br>Solutions (red) vs True Pareto Front (blue) <br>pop_size: {pop_size}, n_generations: {n_gen},<br>HV: {hv:.3f}, GD: {gd:.3f}, spacing: {spacing:.3f}',
+    title=f'{alg}<br>Solutions (red) vs True Pareto Front (blue) <br>pop_size: {pop_size}, n_generations: {n_gen},<br>HV: {hv:.3f}, GD: {gd:.3f}, IGD: {igd:.3f}, spacing: {spacing:.3f}',
     legend=dict(x=0.8, y=0.9)
 )
 

@@ -19,6 +19,7 @@ from pymoo.termination import get_termination
 from pymoo.optimize import minimize
 from pymoo.indicators.hv import Hypervolume
 from pymoo.indicators.gd import GD
+from pymoo.indicators.igd import IGD
 from pymoo.indicators.spacing import SpacingIndicator
 
 def sample_true_pf(D, L, sample_size):
@@ -75,6 +76,9 @@ def experiment (S = None, dim = None, n_gen = None, diagnostic_id = None, L = No
         opt_X = res.opt.get("X") #final solutions genotypes (pf)
         opt_F = res.opt.get("F") #final solutions phenotypes (pf)
 
+        assert len(X) == len(F), "X and F should have the same length"
+        assert len(opt_X) == len(opt_F), "opt_X and opt_F should have the same length"
+
         #Hypervolume calculation
         # ref_point = np.array([L]*problem.n_var)
         # ind = Hypervolume(pf = opt_F, ref_point=ref_point)
@@ -83,13 +87,14 @@ def experiment (S = None, dim = None, n_gen = None, diagnostic_id = None, L = No
 
         true_pf = sample_true_pf(D = dim, L = L, sample_size = S)
         indgd = GD(pf = true_pf)
+        indigd = IGD(pf = true_pf)
         gd = indgd(opt_F)
-        print("GD: ", gd)
+        igd = indigd(opt_F)
 
         indspace = SpacingIndicator()
         spacing = indspace(opt_F)
 
-        result = {'alg': alg, 'S': S, 'dim':dim, 'n_gen':n_gen, 'diagnostic_id':diagnostic_id, 'L':L,'GD':float(gd),'spacing':float(spacing), 'damp':damp, 'epsilon':epsilon, 
+        result = {'alg': alg, 'S': S, 'dim':dim, 'n_gen':n_gen, 'diagnostic_id':diagnostic_id, 'L':L,'GD':float(gd),'IGD':float(igd),'spacing':float(spacing), 'pf_size':len(opt_F), 'damp':damp, 'epsilon':epsilon, 
                 'epsilon_type':epsilon_type, 'seed':seed, 'rdir':rdir}
         print(result)
         final_population_data = {'X': X.tolist(), 'F': F.tolist(), 'opt_X': opt_X.tolist(), 'opt_F': opt_F.tolist()}
@@ -99,11 +104,10 @@ def experiment (S = None, dim = None, n_gen = None, diagnostic_id = None, L = No
         with open(filename, 'w') as of:
             json.dump(result, of, indent=2)
 
-        if (seed == 14724):
-            os.makedirs(rdir+'experiment', exist_ok=True)
-            filename_pop = rdir + f'/experiment/alg-{alg}-S-{S}-dim-{dim}-seed-{seed}.json'
-            with open(filename_pop, 'w') as f:
-                json.dump(final_population_data, f, indent=2)
+        os.makedirs(rdir+'experiment', exist_ok=True)
+        filename_pop = rdir + f'/experiment/alg-{alg}-S-{S}-dim-{dim}-seed-{seed}.json'
+        with open(filename_pop, 'w') as f:
+            json.dump(final_population_data, f, indent=2)
         
         
     return result
