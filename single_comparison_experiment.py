@@ -43,6 +43,23 @@ def sample_true_pf(D, L, sample_size):
     sample_pf.add(tuple([0]*D)) # Add solution with all 0s
     return np.array([np.array(point) for point in sample_pf])
 
+def ref_pf(D, L):
+    points = []
+    for i in range(D):
+        point = [L]*D
+        point[i] = -L
+        points.append(point)
+    return np.array(points)
+
+def ref_pf_all(D, L):
+    points = []
+    for i in range(D):
+        for j in range(L):
+            point = [j]*D
+            point[i] = -j
+            points.append(point)
+    return np.array(points)
+
 def experiment (S = None, dim = None, n_gen = None, diagnostic_id = None, L = None, 
                 damp = None, epsilon = None, epsilon_type = None, seed = None, rdir = ""):
     
@@ -85,17 +102,53 @@ def experiment (S = None, dim = None, n_gen = None, diagnostic_id = None, L = No
         # hv = ind._do(opt_F)
         #hv_norm = hv / np.prod(ref_point)
 
-        true_pf = sample_true_pf(D = dim, L = L, sample_size = S)
-        indgd = GD(pf = true_pf)
-        indigd = IGD(pf = true_pf)
-        gd = indgd(opt_F)
-        igd = indigd(opt_F)
+        #true_pf = sample_true_pf(D = dim, L = L, sample_size = S)
+        ref_pf_corner = ref_pf(dim, L)
+        ref_pf_middle = ref_pf(dim, L/2)
+        ref_pf_zeros = np.array([0]*dim)
+        ref_pf_ints = ref_pf_all(dim, L)
+
+        reference_pfs = ["corner", "middle", "zeros", "ints"]
+
+        for p in reference_pfs:
+
+            if p == "corner":
+                indgd_corner = GD(pf = ref_pf_corner)
+                indigd_corner = IGD(pf = ref_pf_corner)
+                gd_corner = indgd_corner(opt_F)
+                igd_corner = indigd_corner(opt_F)
+            
+            elif p == "middle":
+                indgd_middle = GD(pf = ref_pf_middle)
+                indigd_middle = IGD(pf = ref_pf_middle)
+                gd_middle = indgd_middle(opt_F)
+                igd_middle = indigd_middle(opt_F)
+            
+            elif p == "zeros":
+                indgd_zeros = GD(pf = ref_pf_zeros)
+                indigd_zeros = IGD(pf = ref_pf_zeros)
+                gd_zeros = indgd_zeros(opt_F)
+                igd_zeros = indigd_zeros(opt_F)
+
+            elif p == "ints":
+                indgd_ints = GD(pf = ref_pf_ints)
+                indigd_ints = IGD(pf = ref_pf_ints)
+                gd_ints = indgd_ints(opt_F)
+                igd_ints = indigd_ints(opt_F)
+            
+            else:
+                raise ValueError("Invalid reference pareto_front.")
+
 
         indspace = SpacingIndicator()
         spacing = indspace(opt_F)
 
-        result = {'alg': alg, 'S': S, 'dim':dim, 'n_gen':n_gen, 'diagnostic_id':diagnostic_id, 'L':L,'GD':float(gd),'IGD':float(igd),'spacing':float(spacing), 'pf_size':len(opt_F), 'damp':damp, 'epsilon':epsilon, 
-                'epsilon_type':epsilon_type, 'seed':seed, 'rdir':rdir}
+        result = {'alg': alg, 'S': S, 'dim':dim, 'n_gen':n_gen, 'diagnostic_id':diagnostic_id, 'L':L,
+                  'GD_corner':float(gd_corner),'IGD_corner':float(igd_corner), 'GD_middle':float(gd_middle),'IGD_middle':float(igd_middle),
+                  'GD_zeros':float(gd_zeros),'IGD_zeros':float(igd_zeros), 'GD_ints':float(gd_ints),'IGD_ints':float(igd_ints),
+                  'spacing':float(spacing), 'pf_size':len(opt_F), 'damp':damp, 'epsilon':epsilon, 
+                  'epsilon_type':epsilon_type, 'seed':seed, 'rdir':rdir}
+        
         print(result)
         final_population_data = {'X': X.tolist(), 'F': F.tolist(), 'opt_X': opt_X.tolist(), 'opt_F': opt_F.tolist()}
 

@@ -106,6 +106,23 @@ def sample_true_pf(D, L, sample_size):
     sample_pf.add(tuple([0]*D)) # Add solution with all 0s
     return np.array([np.array(point) for point in sample_pf])
 
+def ref_pf(D, L):
+    points = []
+    for i in range(D):
+        point = [L]*D
+        point[i] = -L
+        points.append(point)
+    return np.array(points)
+
+def ref_pf_all(D, L):
+    points = []
+    for i in range(D):
+        for j in range(L):
+            point = [j]*D
+            point[i] = -j
+            points.append(point)
+    return np.array(points)
+
 ##### Parameters
 pop_size = 100
 n_var = 3
@@ -195,14 +212,39 @@ from pymoo.indicators.igd import IGD
 # #true_pf = problem.pareto_front
     
 true_pf = sample_true_pf(n_obj, xu, pop_size)
-indgd = GD(pf = true_pf)
-indigd = IGD(pf = true_pf)
+ref_pf_corner = ref_pf(n_obj, xu)
+ref_pf_middle = ref_pf(n_obj, xu/2)
+ref_pf_zeros = np.array([0]*n_obj)
+ref_pf_ints = ref_pf_all(n_obj, xu)
 
-gd = indgd(opt_F)
-igd = indigd(opt_F)
+reference_pfs = ["corner", "middle", "zeros", "ints"]
 
-print("GD: ", gd)
-print("IGD: ", igd)
+for p in reference_pfs:
+
+    if p == "corner":
+        indgd = GD(pf = ref_pf_corner)
+        indigd = IGD(pf = ref_pf_corner)
+    
+    elif p == "middle":
+        indgd = GD(pf = ref_pf_middle)
+        indigd = IGD(pf = ref_pf_middle)
+    
+    elif p == "zeros":
+        indgd = GD(pf = ref_pf_zeros)
+        indigd = IGD(pf = ref_pf_zeros)
+
+    elif p == "ints":
+        indgd = GD(pf = ref_pf_ints)
+        indigd = IGD(pf = ref_pf_ints)
+    
+    else:
+        raise ValueError("Invalid reference pareto_front.")
+
+    gd = indgd(opt_F)
+    igd = indigd(opt_F)
+
+    print(f"GD_{p}: ", gd)
+    print(f"IGD_{p}: ", igd)
 
 ##### Spacing Indicator
 from pymoo.indicators.spacing import SpacingIndicator
