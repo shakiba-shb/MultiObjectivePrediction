@@ -132,6 +132,8 @@ alg = "Lexicase"
 xl = 0
 xu = 10
 damp = 1
+epsilon_type = 'constant'
+epsilon = 0
 
 ##### Define the problem
 problem = DiagnosticProblem(diagnostic_id=5, n_var=n_var, n_obj=n_obj, xl=xl, xu=xu, damp = damp)
@@ -149,7 +151,7 @@ problem = DiagnosticProblem(diagnostic_id=5, n_var=n_var, n_obj=n_obj, xl=xl, xu
 # )
 
 ref_dirs = get_reference_directions("das-dennis", 3, n_partitions=12) # Get reference directions for NSGA3
-algorithm = get_algorithm(alg, pop_size = pop_size)
+algorithm = get_algorithm(alg, pop_size = pop_size, epsilon_type = epsilon_type, epsilon = epsilon, ref_dirs = ref_dirs)
 
 ###### Define the termination criteria
 termination = get_termination("n_gen", n_gen)
@@ -319,7 +321,7 @@ fig.update_layout(
         yaxis_title='Objective 2',
         zaxis_title='Objective 3',
     ),
-    title=f'{alg}<br>Solutions (red) vs True Pareto Front (blue) <br>pop_size: {pop_size}, n_generations: {n_gen},<br>HV: {hv:.3f}, GD: {gd:.3f}, IGD: {igd:.3f}, spacing: {spacing:.3f}',
+    title=f'{alg}, {epsilon_type}, {epsilon}<br>Solutions (red) vs True Pareto Front (blue) <br>pop_size: {pop_size}, n_generations: {n_gen},<br>HV: {hv:.3f}, GD: {gd:.3f}, IGD: {igd:.3f}, spacing: {spacing:.3f}',
     legend=dict(x=0.8, y=0.9)
 )
 

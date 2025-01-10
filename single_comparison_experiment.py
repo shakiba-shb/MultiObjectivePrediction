@@ -74,7 +74,7 @@ def experiment (S = None, dim = None, n_gen = None, diagnostic_id = None, L = No
 
         #Define the algorithms
         #all algorithms should be run in the same experiment to be compared with the same true pf
-        algorithm = get_algorithm(alg, pop_size = S)
+        algorithm = get_algorithm(alg, pop_size = S, epsilon_type = epsilon_type, epsilon = epsilon)
 
         #Define the termination criteria
         termination = get_termination("n_gen", n_gen)
@@ -176,7 +176,7 @@ if __name__ == "__main__":
     parser.add_argument('-L', type=int, default = 10, help='Search space limit')
     parser.add_argument('-damp', type=float, default = 1.0, help='Dampening factor')
     parser.add_argument('-epsilon', type=float, default = 0.0, help='Epsilon value')
-    parser.add_argument('-epsilon_type', type=int, default = 0, help='Epsilon type')
+    parser.add_argument('-epsilon_type', type=str, default = 'constant', help='Epsilon type')
     parser.add_argument('-seed', type=int, default = 14724, help='Random seed')
     parser.add_argument('-rdir', type=str, default = '/home/shakiba/MultiObjectivePrediction/results/', help='Results directory')
     args = parser.parse_args()
