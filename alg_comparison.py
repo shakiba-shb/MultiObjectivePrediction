@@ -83,17 +83,17 @@ def ref_pf(problem, points_type):
 pop_size = 100
 n_var = 3
 n_obj = n_var
-n_gen = 10
+n_gen = 500
 alg = "Lexicase"
-diagnostic_id = 5
+diagnostic = "antagonistic"
 xl = 0
 xu = 10
 damp = 1
-epsilon_type = 'constant'
+epsilon_type = 'standard'
 epsilon = 0.0
 
 ##### Define the problem
-problem = DiagnosticProblem(diagnostic_id=diagnostic_id, n_var=n_var, n_obj=n_obj, xl=xl, xu=xu, damp = damp)
+problem = DiagnosticProblem(diagnostic=diagnostic, n_var=n_var, n_obj=n_obj, xl=xl, xu=xu, damp = damp)
 #problem = get_problem("dtlz1")
 # pf = get_problem("zdt1").pareto_front()
 ###### Define the algorithm

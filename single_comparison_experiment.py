@@ -65,7 +65,7 @@ def ref_pf(problem, points_type):
 
     return np.array(list(_points))
 
-def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic_id = None, L = None, damp = None, seed = None, rdir = ""):
+def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic = None, L = None, damp = None, seed = None, rdir = ""):
     
     runid = uuid.uuid4()
     #for alg in ["Lexicase", "NSGA2"]:
@@ -74,7 +74,7 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic_
          "seed = ", seed, "rdir = ", rdir, "runid = ", runid)
     
     #Define the problem
-    problem = DiagnosticProblem(diagnostic_id=diagnostic_id, n_var=dim, n_obj=dim, xl=0, xu=L, damp = damp)
+    problem = DiagnosticProblem(diagnostic=diagnostic, n_var=dim, n_obj=dim, xl=0, xu=L, damp = damp)
 
     #Define the algorithms
     
@@ -161,7 +161,7 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic_
     indspace = SpacingIndicator()
     spacing = indspace(opt_F)
 
-    result = {'alg_name': alg_name, 'S': S, 'dim':dim, 'n_gen':n_gen, 'diagnostic_id':diagnostic_id, 'L':L,
+    result = {'alg_name': alg_name, 'S': S, 'dim':dim, 'n_gen':n_gen, 'diagnostic_id':diagnostic, 'L':L,
                 'GD_corners':float(gd_corner),'IGD_corners':float(igd_corner), 'GD_middles':float(gd_middle),'IGD_middles':float(igd_middle),
                 'GD_zeros':float(gd_zeros),'IGD_zeros':float(igd_zeros), 'GD_ints':float(gd_ints),'IGD_ints':float(igd_ints),
                 'spacing':float(spacing), 'pf_size':len(opt_F), 'damp':damp, 'seed':seed, 'rdir':rdir}
@@ -199,6 +199,6 @@ if __name__ == "__main__":
     parser.add_argument('-rdir', type=str, default = '/home/shakiba/MultiObjectivePrediction/results/', help='Results directory')
     args = parser.parse_args()
 
-    experiment(alg_name = args.alg_name, S = args.S, dim = args.dim, n_gen = args.n_gen, diagnostic_id = args.diagnostic_id, L = args.L,
+    experiment(alg_name = args.alg_name, S = args.S, dim = args.dim, n_gen = args.n_gen, diagnostic = args.diagnostic, L = args.L,
                 damp = args.damp, seed = args.seed, rdir = args.rdir)
 

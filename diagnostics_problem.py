@@ -5,9 +5,9 @@ from pymoo.core.sampling import Sampling
 
 class DiagnosticProblem(ElementwiseProblem):
 
-    def __init__(self, diagnostic_id, n_var, n_obj, xl, xu, **kwargs):
+    def __init__(self, diagnostic, n_var, n_obj, xl, xu, **kwargs):
 
-        self.diagnostic_id = diagnostic_id
+        self.diagnostic = diagnostic
         self.n_var = n_var
         self.n_obj = n_obj
         self.xl = xl
@@ -29,17 +29,17 @@ class DiagnosticProblem(ElementwiseProblem):
         pos = 0
         damp = self.damp
 
-        match self.diagnostic_id:
-            case 0:
-                #EXPLOIT
+        match self.diagnostic:
+            case 'exploit':
+                # EXPLOITATION RATE  
                 first_active = 0
                 active_count = len(x)
                 
                 total_score = np.sum(f)
                 out["F"] = -np.asarray(x)
                 
-            case 1:
-                #STRUCT_EXPLOIT
+            case 'structExploit':
+                # ORDERED EXPLOITATION RATE
                 f[0] = x[0]
                 first_active = 0
                 for pos in range(len(x)):
@@ -50,8 +50,8 @@ class DiagnosticProblem(ElementwiseProblem):
                 total_score = np.sum(f)
                 out["F"] = -np.asarray(f)
                             
-            case 2:
-                #EXPLORE
+            case 'explore':
+                # EXPLORATION RATE
                 pos = np.argmax(x)
                 f[pos] = x[pos]
                 first_active = pos
@@ -65,8 +65,8 @@ class DiagnosticProblem(ElementwiseProblem):
                 total_score = np.sum(f)
                 out["F"] = -np.asarray(f)
                             
-            case 3:     
-                #DIVERSITY
+            case 'diversity':     
+                # DIVERSITY
                 pos = np.argmax(x)
                 f[pos] = x[pos]
                 first_active = pos
@@ -79,8 +79,8 @@ class DiagnosticProblem(ElementwiseProblem):
                 total_score = np.sum(f)
                 out["F"] = -np.asarray(f)
             
-            case 4:
-                #WEAK_DIVERSITY
+            case 'weakDiversity':
+                # CONTRADICTORY OBJECTIVES
                 pos = np.argmax(x)
                 f[pos] = x[pos]
                 first_active = pos
@@ -89,16 +89,16 @@ class DiagnosticProblem(ElementwiseProblem):
                 total_score = np.sum(f)
                 out["F"] = -np.asarray(f)
             
-            case 5:
-                #ANTAGONISTIC
+            case 'antagonistic':
+                # ANTAGONISTIC CONTRADICTORY OBJECTIVES (WORST CASE)
                 pos = np.argmax(x)
                 first_active = pos
                 active_count = 1
 
-                f = (-1)*(x - np.sum(x)/damp + x/damp)
+                f = (x - np.sum(x)/damp + x/damp)
 
                 total_score = np.sum(f)
-                out["F"] = np.asarray(f)
+                out["F"] = -np.asarray(f)
 
 
 class DiagnosticRandomSampling(Sampling):
