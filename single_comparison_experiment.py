@@ -70,7 +70,7 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic 
     runid = uuid.uuid4()
     #for alg in ["Lexicase", "NSGA2"]:
 
-    print("alg_name = ", alg_name, "S = ", S, "n_var = ", dim, "n_obj = ", dim, "L = ", L, "n_gen = ", n_gen, "damp = ", damp,
+    print("alg_name = ", alg_name, "S = ", S, "n_var = ", dim, "n_obj = ", dim, 'diagnostic = ', diagnostic, "L = ", L, "n_gen = ", n_gen, "damp = ", damp,
          "seed = ", seed, "rdir = ", rdir, "runid = ", runid)
     
     #Define the problem
@@ -161,7 +161,7 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic 
     indspace = SpacingIndicator()
     spacing = indspace(opt_F)
 
-    result = {'alg_name': alg_name, 'S': S, 'dim':dim, 'n_gen':n_gen, 'diagnostic_id':diagnostic, 'L':L,
+    result = {'alg_name': alg_name, 'S': S, 'dim':dim, 'n_gen':n_gen, 'diagnostic':diagnostic, 'L':L,
                 'GD_corners':float(gd_corner),'IGD_corners':float(igd_corner), 'GD_middles':float(gd_middle),'IGD_middles':float(igd_middle),
                 'GD_zeros':float(gd_zeros),'IGD_zeros':float(igd_zeros), 'GD_ints':float(gd_ints),'IGD_ints':float(igd_ints),
                 'spacing':float(spacing), 'pf_size':len(opt_F), 'damp':damp, 'seed':seed, 'rdir':rdir}
@@ -190,7 +190,7 @@ if __name__ == "__main__":
     parser.add_argument('-S', type=int, default = 100, help='Population size')
     parser.add_argument('-dim', type=int, default = 5, help='Number of objectives/variables')
     parser.add_argument('-n_gen', type=int, default = 50, help='Number of generations')
-    parser.add_argument('-diagnostic_id', type=int, default = 5, help='Diagnostic problem id')
+    parser.add_argument('-diagnostic', type=str, default = 'antagonistic', help='Diagnostic problem')
     parser.add_argument('-L', type=int, default = 10, help='Search space limit')
     parser.add_argument('-damp', type=float, default = 1.0, help='Dampening factor')
     #parser.add_argument('-epsilon', type=float, default = '0.0', help='Epsilon value')
