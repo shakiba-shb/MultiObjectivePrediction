@@ -14,77 +14,6 @@ from pymoo.optimize import minimize
 from algorithms import get_algorithm
 from pymoo.problems import get_problem
 
-def find_hyperplane(*points):
-    """
-    Finds the hyperplane that includes n points in n-dimensional space and returns its normal vector and d.
-
-    Parameters:
-        points (tuple): A variable number of points, each as a tuple (x1, x2, ..., xn) in n-dimensional space.
-
-    Returns:
-        tuple: A tuple containing the normal vector and d.
-    """
-    points = np.array(points)
-    n_points, n_dims = points.shape
-
-    # Ensure the correct number of points for the dimension
-    if n_points != n_dims:
-        raise ValueError("The number of points must match the dimensionality of the space.")
-
-    # Form a matrix with point differences
-    diff_matrix = points[1:] - points[0]
-
-    # Compute the null space (normal vector to the hyperplane)
-    u, s, vh = np.linalg.svd(diff_matrix)
-    normal_vector = vh[-1]  # Null space corresponds to the last row of Vh in SVD
-
-    # Ensure the normal vector is not zero
-    if np.allclose(normal_vector, 0):
-        raise ValueError("The points do not define a unique hyperplane.")
-
-    # Calculate d using the hyperplane equation
-    d = -np.dot(normal_vector, points[0])
-
-    return normal_vector, d
-
-
-def find_true_pf(normal_vector, num_points=100):
-    # Number of dimensions
-    n = len(normal_vector)
-    x_range=(-10, 10*(n-1))
-    
-    # Randomly sample values for x1, x2, ..., x_(n-1), because we can't use the whole pareto front
-    sampled_points = np.random.uniform(x_range[0], x_range[1], (num_points, n - 1))
-    
-    # Calculate the corresponding xn values based on the line equation in n dimensions
-    # x_n = -(a_1/a_n) * x_1 - (a_2/a_n) * x_2 - ... - (a_(n-1)/a_n) * x_(n-1)
-    x_n_values = -np.sum(sampled_points * normal_vector[:-1], axis=1) / normal_vector[-1]
-    
-    # Append the xn values to form the full n-dimensional points
-    pareto_front = np.column_stack((sampled_points, x_n_values))
-    
-    return pareto_front
-
-def generate_points(L, D):
-    """
-    Generate points where each position is L once, while every other position is -L.
-    These points, along with the point where are positions are 0, are used to generate the true pareto front.
-    
-    Parameters:
-    N (int): The magnitude of the coordinates.
-    D (int): The number of dimensions.
-    
-    Returns:
-    list of tuples: The generated points.
-    """
-    points = []
-    for i in range(D):
-        # Create a point where the i-th position is N and all others are -N
-        point = [-L] * D
-        point[i] = L
-        points.append(tuple(point))
-    return points
-
 def sample_true_pf(D, L, sample_size):
     """
     Generate a set of pop_size points that lie on the true pareto front.
@@ -106,37 +35,65 @@ def sample_true_pf(D, L, sample_size):
     sample_pf.add(tuple([0]*D)) # Add solution with all 0s
     return np.array([np.array(point) for point in sample_pf])
 
-def ref_pf(D, L):
-    points = []
-    for i in range(D):
-        point = [L]*D
-        point[i] = -L
-        points.append(point)
-    return np.array(points)
+def ref_pf(problem, points_type):
+    """
+    Generate a reference Pareto front containing points based on the specified type.
+    
+    Parameters:
+    - problem: The problem instance with attributes `n_obj` (number of objectives/problem dimension)
+      and `xu` (upper bounds for variables).
+    - points_type: Type of points to generate. Can be one of 'ints', 'corners', or 'middles'.
+    
+    Returns:
+    - np.ndarray: Array of points on the Pareto front.
+    """
+    _points = set()  
+    D = problem.n_obj 
+    L = int(max(problem.xu))  
 
-def ref_pf_all(D, L):
-    points = []
-    for i in range(D):
-        for j in range(L):
-            point = [j]*D
-            point[i] = -j
-            points.append(point)
-    return np.array(points)
+    if points_type == 'ints':
+        # Generate all points where one value is an integer and the rest are 0
+        for i in range(D):
+            for j in range(L+1):
+                genotype = np.zeros(D, dtype=int)
+                genotype[i] = j
+                problem._evaluate(genotype, out := {})
+                _points.add(tuple(out["F"]))
+
+    elif points_type == 'corners':
+        # Generate corner points
+        for i in range(D):
+            genotype = np.zeros(D, dtype=int)
+            genotype[i] = L
+            problem._evaluate(genotype, out := {})
+            _points.add(tuple(out["F"]))
+
+    elif points_type == 'middles':
+        # Generate middle points
+        for i in range(D):
+            genotype = np.zeros(D, dtype=int)
+            genotype[i] = L/2
+            problem._evaluate(genotype, out := {})
+            _points.add(tuple(out["F"]))
+
+    return np.array(list(_points))
+
 
 ##### Parameters
 pop_size = 100
 n_var = 3
 n_obj = n_var
-n_gen = 100
+n_gen = 10
 alg = "Lexicase"
+diagnostic_id = 5
 xl = 0
 xu = 10
 damp = 1
 epsilon_type = 'constant'
-epsilon = 0
+epsilon = 0.0
 
 ##### Define the problem
-problem = DiagnosticProblem(diagnostic_id=5, n_var=n_var, n_obj=n_obj, xl=xl, xu=xu, damp = damp)
+problem = DiagnosticProblem(diagnostic_id=diagnostic_id, n_var=n_var, n_obj=n_obj, xl=xl, xu=xu, damp = damp)
 #problem = get_problem("dtlz1")
 # pf = get_problem("zdt1").pareto_front()
 ###### Define the algorithm
@@ -213,21 +170,27 @@ from pymoo.indicators.igd import IGD
 # true_pf = find_true_pf(normal_vector = normal_vector, num_points = pop_size) # Generate Pareto front from normal vector
 # #true_pf = problem.pareto_front
     
-true_pf = sample_true_pf(n_obj, xu, pop_size)
-ref_pf_corner = ref_pf(n_obj, xu)
-ref_pf_middle = ref_pf(n_obj, xu/2)
-ref_pf_zeros = np.array([0]*n_obj)
-ref_pf_ints = ref_pf_all(n_obj, xu)
+#true_pf = sample_true_pf(n_obj, xu, pop_size)
+# ref_pf_corner = ref_pf(n_obj, xu)
+# ref_pf_middle = ref_pf(n_obj, xu/2)
+# ref_pf_zeros = np.array([0]*n_obj)
+# ref_pf_ints = ref_pf_all(n_obj, xu)
+# ref_pf_ints = ref_pf_all(problem)
 
-reference_pfs = ["corner", "middle", "zeros", "ints"]
+ref_pf_ints = ref_pf(problem, points_type = 'ints')
+ref_pf_corner = ref_pf(problem, points_type = 'corners')
+ref_pf_middle = ref_pf(problem, points_type = 'middles')
+ref_pf_zeros = np.array([[0]*n_obj])
+true_pf = ref_pf_ints
+reference_pfs = ["corners", "middles", "zeros", "ints"]
 
 for p in reference_pfs:
 
-    if p == "corner":
+    if p == "corners":
         indgd = GD(pf = ref_pf_corner)
         indigd = IGD(pf = ref_pf_corner)
     
-    elif p == "middle":
+    elif p == "middles":
         indgd = GD(pf = ref_pf_middle)
         indigd = IGD(pf = ref_pf_middle)
     
@@ -279,7 +242,7 @@ from mpl_toolkits.mplot3d import Axes3D  # Import for 3D plotting if needed
 #     plt.title(f'plot of solutions vs true pareto front (2D)\npop_size: {pop_size}, n_generations: {n_gen}\nHV: {hv:.3f}, GD: {gd:.3f}')
 #     plt.legend()
 #     plt.grid()
-#     plt.savefig(f'/home/shakiba/MultiObjectivePrediction/plots/{alg}_pfs_2D.png')
+#     plt.savefig(f'/home/shakiba/MultiObjectivePrediction/plots/standard_lexicase_2D_damp2.png')
 
 # elif opt_F.shape[1] == 3:  # 3D plotting
 #     fig = plt.figure(figsize=(8, 6))
@@ -326,5 +289,5 @@ fig.update_layout(
 )
 
 # Save to file or show
-#fig.write_html(f'/home/shakiba/MultiObjectivePrediction/plots/{alg}_pfs_3D_interactive_sample_pf.html')
+fig.write_html(f'/home/shakiba/MultiObjectivePrediction/plots/standard_lexicase_3D_damp_2.html')
 fig.show()

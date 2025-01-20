@@ -56,6 +56,12 @@ def get_parent(pop, epsilon_type, epsilon):
                 get_parent._called = True
             epsilon = epsilon
 
+        elif (epsilon_type == 'standard'):
+            if not hasattr(get_parent, "_called"):
+                print("standard epsilon called")
+                get_parent._called = True
+            epsilon = 0.0
+
         else:
             raise ValueError('Invalid epsilon type')
 
