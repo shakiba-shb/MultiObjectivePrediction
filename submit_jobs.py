@@ -5,7 +5,7 @@ import time
 import subprocess
 
 parser = argparse.ArgumentParser(description='Submit jobs')
-parser.add_argument('-alg_name', action = 'store', dest='algs', type=str, default = 'NSGA2', help='Algorithm to use')
+parser.add_argument('-alg_name', action = 'store', dest='algs', type=str, default = 'NSGA2,lex_std,lex_const,lex_semi,lex_dyn', help='Algorithm to use')
 parser.add_argument('-S', action = 'store', dest='Ss', type=str, default = '100,200,300,400,500,600,700,800,900,1000', help='Population size')
 parser.add_argument('-dim', action = 'store', dest='dims', type=str, default = '5,15,25,50,75,100,125,150,175,200', help='Number of objectives/variables')
 parser.add_argument('-n_gen', action = 'store', dest='n_gens', type=str, default = '100', help='Number of generations')
@@ -42,27 +42,26 @@ job_info = []
 rdir = '/'.join([args.rdir])
 os.makedirs(rdir, exist_ok=True)
 
-for alg,s,dim,damp,seed,epsilon,epsilon_type,n_gen,diagnostic_id,l in it.product(algs,Ss,dims,damps,seeds,n_gens,diagnostic_ids,Ls):
+for alg,s,dim,damp,seed,n_gen,diagnostic_id,l in it.product(algs,Ss,dims,damps,seeds,n_gens,diagnostic_ids,Ls):
 
 	all_commands.append(
 		f'python /mnt/home/shahban1/MultiObjectivePrediction/single_comparison_experiment.py -alg_name {alg} -S {int(s)} -dim {int(dim)} -damp {float(damp)} -seed {int(seed)} -rdir {rdir} -n_gen {int(n_gen)} -diagnostic_id {int(diagnostic_id)} -L {int(l)}'
 	)
 
 	job_info.append({
-		#'alg':alg,
-         'S':s,
-         'dim':dim,
-         'damp':damp,  
-         'epsilon': epsilon, 
-		 'epsilon_type': epsilon_type,
-		 'seed': seed,
-		 'rdir': rdir
+		'alg':alg,
+        'S':s,
+        'dim':dim,
+        'damp':damp,  
+		'seed': seed,
+		'diagnostic': diagnostic_id,
+		'rdir': rdir
         
 	})
 
 
 print(len(job_info), 'total jobs created')
-
+time.sleep(3)
 if args.slurm:
 	# write a jobarray file to read commans from
 	jobarrayfile = 'jobfiles/joblist.txt'
@@ -70,7 +69,7 @@ if args.slurm:
 	for i, run_cmd in enumerate(all_commands):
 
 		job_name = '_'.join([x + '-' + f'{job_info[i][x]}' for x in
-							['alg_name','S','dim', 'diagnostic_id', 'seed']])
+							['alg','S','dim', 'diagnostic', 'seed']])
 		job_file = f'jobfiles/{job_name}.sb'
 		out_file = job_info[i]['rdir'] + '/' + job_name + '_%J.out'
 
