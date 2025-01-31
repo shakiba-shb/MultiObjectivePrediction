@@ -23,7 +23,7 @@ class DiagnosticProblem(ElementwiseProblem):
 
     def _evaluate(self, x, out, *args, **kwargs):
 
-        f = np.empty(self.n_obj)
+        f = np.zeros(self.n_obj)
         assert len(x) == len(f)
         total_score = 0
         pos = 0
@@ -35,19 +35,22 @@ class DiagnosticProblem(ElementwiseProblem):
                 first_active = 0
                 active_count = len(x)
                 
-                total_score = np.sum(f)
+                total_score = -np.sum(f)
                 out["F"] = -np.asarray(x)
                 
             case 'structExploit':
                 # ORDERED EXPLOITATION RATE
                 f[0] = x[0]
                 first_active = 0
-                for pos in range(len(x)):
+                for pos in range(1, len(x)):
                     if x[pos] <= x[pos - 1]:
                         f[pos] = x[pos]
+                    else:
+                        f[pos:] = 0
+                        break
 
                 active_count = pos
-                total_score = np.sum(f)
+                total_score = -np.sum(f)
                 out["F"] = -np.asarray(f)
                             
             case 'explore':
@@ -62,7 +65,7 @@ class DiagnosticProblem(ElementwiseProblem):
                     pos += 1
 
                 active_count = pos - first_active
-                total_score = np.sum(f)
+                total_score = -np.sum(f)
                 out["F"] = -np.asarray(f)
                             
             case 'diversity':     
@@ -76,7 +79,7 @@ class DiagnosticProblem(ElementwiseProblem):
                     if i != pos:
                         f[i] = (x[pos] - x[i]) / 2.0
 
-                total_score = np.sum(f)
+                total_score = -np.sum(f)
                 out["F"] = -np.asarray(f)
             
             case 'weakDiversity':
@@ -86,7 +89,7 @@ class DiagnosticProblem(ElementwiseProblem):
                 first_active = pos
                 active_count = 1
 
-                total_score = np.sum(f)
+                total_score = -np.sum(f)
                 out["F"] = -np.asarray(f)
             
             case 'antagonistic':
