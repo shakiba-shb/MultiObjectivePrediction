@@ -73,7 +73,7 @@ def get_parent(pop, epsilon_type, epsilon):
     S = S[:, None].astype(int, copy=False)     
     return random.choice(S)
 
-class FLEX(Selection):
+class LexicaseSelection(Selection):
     
     def __init__(self, epsilon_type, epsilon, **kwargs):
         super().__init__(**kwargs)
@@ -105,7 +105,7 @@ class Lexicase(GeneticAlgorithm):
     def __init__(self,
                  pop_size=100,
                  sampling=FloatRandomSampling(),
-                 selection=FLEX(epsilon_type='constant', epsilon=0),
+                 selection=LexicaseSelection(epsilon_type='constant', epsilon=0),
                  crossover=SBX(eta=15, prob=0.9),
                  mutation=PM(eta=20),
                  survival=LexSurvival(),
