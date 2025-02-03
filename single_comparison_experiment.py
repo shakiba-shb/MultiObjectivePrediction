@@ -159,7 +159,10 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic 
 
 
     indspace = SpacingIndicator()
-    spacing = indspace(opt_F)
+    if (len(opt_F) > 1): 
+        spacing = indspace(opt_F)
+    else:
+        spacing = -1 # spacing is not defined if there's only one soltuion on the pf
 
     result = {'alg_name': alg_name, 'S': S, 'dim':dim, 'n_gen':n_gen, 'diagnostic':diagnostic, 'L':L,
                 'GD_corners':float(gd_corner),'IGD_corners':float(igd_corner), 'GD_middles':float(gd_middle),'IGD_middles':float(igd_middle),

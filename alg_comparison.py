@@ -170,12 +170,11 @@ from pymoo.indicators.igd import IGD
 # true_pf = find_true_pf(normal_vector = normal_vector, num_points = pop_size) # Generate Pareto front from normal vector
 # #true_pf = problem.pareto_front
     
-#true_pf = sample_true_pf(n_obj, xu, pop_size)
+# true_pf = sample_true_pf(n_obj, xu, pop_size)
 # ref_pf_corner = ref_pf(n_obj, xu)
 # ref_pf_middle = ref_pf(n_obj, xu/2)
 # ref_pf_zeros = np.array([0]*n_obj)
 # ref_pf_ints = ref_pf_all(n_obj, xu)
-# ref_pf_ints = ref_pf_all(problem)
 
 ref_pf_ints = ref_pf(problem, points_type = 'ints')
 ref_pf_corner = ref_pf(problem, points_type = 'corners')
@@ -214,7 +213,10 @@ for p in reference_pfs:
 ##### Spacing Indicator
 from pymoo.indicators.spacing import SpacingIndicator
 indspace = SpacingIndicator()
-spacing = indspace(opt_F)
+if (len(opt_F)>1):
+    spacing = indspace(opt_F)
+else:
+    spacing = -1
 print("Spacing: ", spacing)
 
 ##### Plotting
@@ -284,10 +286,10 @@ fig.update_layout(
         yaxis_title='Objective 2',
         zaxis_title='Objective 3',
     ),
-    title=f'{alg}, {epsilon_type}, {epsilon}<br>Solutions (red) vs True Pareto Front (blue) <br>pop_size: {pop_size}, n_generations: {n_gen},<br>HV: {hv:.3f}, GD: {gd:.3f}, IGD: {igd:.3f}, spacing: {spacing:.3f}',
+    title=f'{alg}, {epsilon_type}, {epsilon}, {diagnostic} <br>Solutions (red) vs True Pareto Front (blue) <br>pop_size: {pop_size}, n_generations: {n_gen},<br>HV: {hv:.3f}, IGD: {igd:.3f}, spacing: {spacing:.3f}',
     legend=dict(x=0.8, y=0.9)
 )
 
 # Save to file or show
-fig.write_html(f'/home/shakiba/MultiObjectivePrediction/plots/standard_lexicase_3D_damp_2.html')
+fig.write_html(f'/home/shakiba/MultiObjectivePrediction/plots/standard_lexicase_3D_{alg}_{diagnostic}.html')
 fig.show()
