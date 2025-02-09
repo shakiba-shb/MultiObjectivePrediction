@@ -5,22 +5,22 @@ import time
 import subprocess
 
 parser = argparse.ArgumentParser(description='Submit jobs')
-parser.add_argument('-alg_name', action = 'store', dest='algs', type=str, default = 'NSGA2,lex_std,lex_const,lex_semi,lex_dyn', help='Algorithm to use')
+parser.add_argument('-alg_name', action = 'store', dest='algs', type=str, default = 'NSGA2,lex_std', help='Algorithm to use')
 parser.add_argument('-S', action = 'store', dest='Ss', type=str, default = '100,200,300,400,500,600,700,800,900,1000', help='Population size')
 parser.add_argument('-dim', action = 'store', dest='dims', type=str, default = '5,15,25,50,75,100,125,150,175,200', help='Number of objectives/variables')
 parser.add_argument('-n_gen', action = 'store', dest='n_gens', type=str, default = '100', help='Number of generations')
-parser.add_argument('-diagnostic_id', action = 'store', dest='diagnostic_ids', type=str, default = '5', help='Diagnostic problem id')
+parser.add_argument('-diagnostic', action = 'store', dest='diagnostics', type=str, default = 'antagonistic', help='Diagnostic problem id')
 parser.add_argument('-L', action = 'store', dest='Ls', type=str, default = '10', help='Search space limit')
 parser.add_argument('-damp', action = 'store', dest='damps', type=str, default = '1.0', help='Dampening factor')
 # parser.add_argument('-epsilon', action = 'store', dest='eps', type=str, default = '0.0', help='Epsilon value')
 # parser.add_argument('-epsilon_type', action = 'store', dest='ep_types', type=str, default = '0', help='Epsilon type')
 parser.add_argument('-seed', action = 'store', dest='seeds', type=str, default = '14724,24284,31658,6933,1318,16695,27690,8233,24481,6832,13352,4866,12669,12092,15860,19863,6654,10197,29756,14289', help='Random seed')
-parser.add_argument('-rdir', type=str, default = '/mnt/scratch/shahban1/MOO/', help='Results directory')
+parser.add_argument('-rdir', type=str, default = '/mnt/scratch/shahban1/MOO_new_antagonistic_no_xover/', help='Results directory')
 parser.add_argument('-n_trials', action='store', dest='N_TRIALS', default=20, type=int, help='Number of trials to run')
 parser.add_argument('-n_jobs', action='store', default=1, type=int, help='Number of parallel jobs')
-parser.add_argument('-mem', action='store', dest='mem', default=10000, type=int, help='memory request and limit (MB)')
+parser.add_argument('-mem', action='store', dest='mem', default=15000, type=int, help='memory request and limit (MB)')
 parser.add_argument('--slurm', action='store_true', default=False, help='Run on an slurm HPC')
-parser.add_argument('-time', action='store', dest='time', default='72:00:00', type=str, help='time in HR:MN:SS')
+parser.add_argument('-time', action='store', dest='time', default='24:00:00', type=str, help='time in HR:MN:SS')
 args = parser.parse_args()
 
 n_trials = len(args.seeds)
@@ -29,7 +29,7 @@ algs = args.algs.split(',')
 Ss = args.Ss.split(',')
 dims = args.dims.split(',')
 n_gens = args.n_gens.split(',')
-diagnostic_ids = args.diagnostic_ids.split(',')
+diagnostics = args.diagnostics.split(',')
 Ls = args.Ls.split(',')
 damps = args.damps.split(',')
 # eps = args.eps.split(',')
@@ -42,10 +42,10 @@ job_info = []
 rdir = '/'.join([args.rdir])
 os.makedirs(rdir, exist_ok=True)
 
-for alg,s,dim,damp,seed,n_gen,diagnostic_id,l in it.product(algs,Ss,dims,damps,seeds,n_gens,diagnostic_ids,Ls):
+for alg,s,dim,damp,seed,n_gen,diagnostic,l in it.product(algs,Ss,dims,damps,seeds,n_gens,diagnostics,Ls):
 
 	all_commands.append(
-		f'python /mnt/home/shahban1/MultiObjectivePrediction/single_comparison_experiment.py -alg_name {alg} -S {int(s)} -dim {int(dim)} -damp {float(damp)} -seed {int(seed)} -rdir {rdir} -n_gen {int(n_gen)} -diagnostic_id {int(diagnostic_id)} -L {int(l)}'
+		f'python /mnt/home/shahban1/MultiObjectivePrediction/single_comparison_experiment.py -alg_name {alg} -S {int(s)} -dim {int(dim)} -damp {float(damp)} -seed {int(seed)} -rdir {rdir} -n_gen {int(n_gen)} -diagnostic {diagnostic} -L {int(l)}'
 	)
 
 	job_info.append({
@@ -54,7 +54,7 @@ for alg,s,dim,damp,seed,n_gen,diagnostic_id,l in it.product(algs,Ss,dims,damps,s
         'dim':dim,
         'damp':damp,  
 		'seed': seed,
-		'diagnostic': diagnostic_id,
+		'diagnostic': diagnostic,
 		'rdir': rdir
         
 	})
@@ -84,7 +84,7 @@ if args.slurm:
 #SBATCH --mem={args.mem}
 
 date
-source /mnt/home/shahban1/lexicase-tradeoffs/lex_env/bin/activate
+source /mnt/home/shahban1/MultiObjectivePrediction/MOO_venv/bin/activate
 
 {run_cmd}
 
