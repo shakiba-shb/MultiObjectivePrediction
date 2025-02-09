@@ -1,6 +1,7 @@
 import numpy as np
 import random
 from diagnostics_problem import DiagnosticProblem
+from diagnostics_problem import DiagnosticRandomSampling
 
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.algorithms.moo.nsga3 import NSGA3
@@ -11,8 +12,14 @@ from pymoo.operators.mutation.pm import PM
 from pymoo.operators.sampling.rnd import FloatRandomSampling
 from pymoo.termination import get_termination
 from pymoo.optimize import minimize
-from algorithms import get_algorithm
+#from algorithms import get_algorithm
 from pymoo.problems import get_problem
+from pymoo.algorithms.moo.age import AGEMOEA
+from pymoo.algorithms.moo.sms import SMSEMOA
+from algorithms.Lexicase import create_lexicase
+from algorithms.NSGA2 import create_nsga2
+from algorithms.NSGA3 import create_nsga3
+from algorithms.MOEAD import create_moead
 
 def sample_true_pf(D, L, sample_size):
     """
@@ -80,22 +87,32 @@ def ref_pf(problem, points_type):
 
 
 ##### Parameters
-pop_size = 100
-n_var = 3
+# Problem parameters
+pop_size = 10
+n_var = 4
 n_obj = n_var
-n_gen = 500
-alg = "Lexicase"
-diagnostic = "antagonistic"
+n_gen = 100
+alg_name = "lex_std"
+diagnostic = "exploit"
 xl = 0
 xu = 10
 damp = 1
-epsilon_type = 'standard'
+
+# Parameters for Lexicase
+epsilon_type = 'constant'
 epsilon = 0.0
+
+# Parameters for NSGA3 and MOEA/D
+#ref_dirs = get_reference_directions("das-dennis", n_var, n_partitions=12) # Get reference directions for NSGA3
+#ref_dirs = get_reference_directions("energy", n_var, n_points=20100, seed=1)
+n_neighbors = 15
+prob_neighbor_mating = 0.7
 
 ##### Define the problem
 problem = DiagnosticProblem(diagnostic=diagnostic, n_var=n_var, n_obj=n_obj, xl=xl, xu=xu, damp = damp)
 #problem = get_problem("dtlz1")
 # pf = get_problem("zdt1").pareto_front()
+
 ###### Define the algorithm
 
 # algorithm = NSGA2(
@@ -107,8 +124,26 @@ problem = DiagnosticProblem(diagnostic=diagnostic, n_var=n_var, n_obj=n_obj, xl=
 #     ref_dirs=ref_dirs
 # )
 
-ref_dirs = get_reference_directions("das-dennis", 3, n_partitions=12) # Get reference directions for NSGA3
-algorithm = get_algorithm(alg, pop_size = pop_size, epsilon_type = epsilon_type, epsilon = epsilon, ref_dirs = ref_dirs)
+# algorithm = get_algorithm(alg, pop_size = pop_size, epsilon_type = epsilon_type, epsilon = epsilon,
+#                            ref_dirs = ref_dirs, n_neighbors = n_neighbors, prob_neighbor_mating = prob_neighbor_mating)
+if alg_name == "NSGA2":
+    algorithm = create_nsga2(pop_size = pop_size)
+elif alg_name == "lex_std":
+    algorithm = create_lexicase(pop_size = pop_size, epsilon_type = 'standard', epsilon = 0.0)
+elif alg_name == "lex_const":
+    algorithm = create_lexicase(pop_size = pop_size, epsilon_type = 'constant', epsilon = 0.5)
+elif alg_name == "lex_semi":
+    algorithm = create_lexicase(pop_size = pop_size, epsilon_type = 'semi-dynamic', epsilon = None)
+elif alg_name == "lex_dyn":
+    algorithm = create_lexicase(pop_size = pop_size, epsilon_type = 'dynamic', epsilon = None)
+elif alg_name == "NSGA3":
+    ref_dirs = get_reference_directions("das-dennis", n_obj, n_partitions = 12)
+    algorithm = create_nsga3(pop_size = pop_size, ref_dirs = ref_dirs)
+elif alg_name == "MOEAD":
+    ref_dirs = get_reference_directions("das-dennis", n_obj, n_partitions = 12)
+    algorithm = create_moead(pop_size = pop_size, ref_dirs = ref_dirs, n_neighbors = 15, prob_neighbor_mating = 0.7)
+else:
+    raise ValueError("Invalid algorithm name / algorithm not implemented.")
 
 ###### Define the termination criteria
 termination = get_termination("n_gen", n_gen)
@@ -137,13 +172,21 @@ print("pf_size: ", len(opt_F))
 
 ##### Hypervolume
 from pymoo.indicators.hv import Hypervolume
-# ref_point = np.array([10*(problem.n_var - 1)]*problem.n_var) # Get reference point for hypervolume calculation
-ref_point = np.array([10]*problem.n_var)
-# #print(ref_point)
-ind = Hypervolume(pf = opt_F, ref_point=ref_point)
-hv = ind(opt_F)
-print("HV: ", hv)
+from pymoo.indicators.hv.monte_carlo import ApproximateMonteCarloHypervolume
+from pymoo.indicators.hv.exact import ExactHypervolume
+from pymoo.indicators.hv.exact_2d import ExactHypervolume2D
 
+ref_point = np.array([10]*problem.n_var)
+
+if n_obj <= 3:
+    ind = Hypervolume(pf = opt_F, ref_point=ref_point)
+    hv = ind(opt_F)
+else:
+    ind = ApproximateMonteCarloHypervolume
+    hv_ind = ind(F = opt_F, ref_point=ref_point)
+    hv, hvc = hv_ind._calc(F = opt_F, ref_point = ref_point)
+
+print('HV: ', hv)
 ##### Generational distance
 from pymoo.indicators.gd import GD
 from pymoo.indicators.igd import IGD
@@ -176,39 +219,63 @@ from pymoo.indicators.igd import IGD
 # ref_pf_zeros = np.array([0]*n_obj)
 # ref_pf_ints = ref_pf_all(n_obj, xu)
 
-ref_pf_ints = ref_pf(problem, points_type = 'ints')
-ref_pf_corner = ref_pf(problem, points_type = 'corners')
-ref_pf_middle = ref_pf(problem, points_type = 'middles')
-ref_pf_zeros = np.array([[0]*n_obj])
-true_pf = ref_pf_ints
-reference_pfs = ["corners", "middles", "zeros", "ints"]
+if diagnostic == "antagonistic":
 
-for p in reference_pfs:
+    ref_pf_ints = ref_pf(problem, points_type = 'ints')
+    ref_pf_corner = ref_pf(problem, points_type = 'corners')
+    ref_pf_middle = ref_pf(problem, points_type = 'middles')
+    ref_pf_zeros = np.array([[0]*n_obj])
+    ref_pf_ = ref_pf_ints
+    reference_pfs = ["corners", "middles", "zeros", "ints"]
 
-    if p == "corners":
-        indgd = GD(pf = ref_pf_corner)
-        indigd = IGD(pf = ref_pf_corner)
-    
-    elif p == "middles":
-        indgd = GD(pf = ref_pf_middle)
-        indigd = IGD(pf = ref_pf_middle)
-    
-    elif p == "zeros":
-        indgd = GD(pf = ref_pf_zeros)
-        indigd = IGD(pf = ref_pf_zeros)
+    for p in reference_pfs:
 
-    elif p == "ints":
-        indgd = GD(pf = ref_pf_ints)
-        indigd = IGD(pf = ref_pf_ints)
-    
-    else:
-        raise ValueError("Invalid reference pareto_front.")
+        if p == "corners":
+            indigd = IGD(pf = ref_pf_corner)
+            igd_corner = indigd(opt_F)
+            
+        elif p == "middles":
+            indigd = IGD(pf = ref_pf_middle)
+            igd_middle = indigd(opt_F)
+            
+        elif p == "zeros":
+            indigd = IGD(pf = ref_pf_zeros)
+            igd_zeros = indigd(opt_F)
 
-    gd = indgd(opt_F)
+        elif p == "ints":
+            indigd = IGD(pf = ref_pf_ints)
+            igd_ints = indigd(opt_F)
+            
+        else:
+            raise ValueError("Invalid reference pareto_front. Choose from 'corners', 'middles', 'zeros', 'ints'.")
+
+        igd = indigd(opt_F)
+        print(f"IGD_{p}: ", igd)
+
+elif diagnostic in ['exploit', 'structExploit', 'explore']:
+    ref_pf_ = np.array([-10]*n_obj)
+    indigd = IGD(pf = ref_pf_)
     igd = indigd(opt_F)
+    print(f"IGD: ", igd)
 
-    print(f"GD_{p}: ", gd)
-    print(f"IGD_{p}: ", igd)
+elif diagnostic == 'weakDiversity':
+    arr = np.zeros((n_obj, n_obj))
+    np.fill_diagonal(arr, -10)
+    ref_pf_ = arr
+    indigd = IGD(pf = ref_pf_)
+    igd = indigd(opt_F)
+    print(f"IGD: ", igd)
+
+elif diagnostic == 'diversity':
+    arr = np.full((n_obj, n_obj), -5)
+    np.fill_diagonal(arr, -10)
+    ref_pf_ = arr
+    indigd = IGD(pf = ref_pf_)
+    igd = indigd(opt_F)
+    print(f"IGD: ", igd)
+
+else:
+    raise ValueError("Invalid diagnostic. Choose from 'exploit', 'structExploit', 'explore', 'diversity', 'weakDiversity', 'antagonistic'.")
 
 ##### Spacing Indicator
 from pymoo.indicators.spacing import SpacingIndicator
@@ -218,6 +285,16 @@ if (len(opt_F)>1):
 else:
     spacing = -1
 print("Spacing: ", spacing)
+
+##### KKTPM Indicator #####
+# from pymoo.gradient import activate
+# from pymoo.constraints.from_bounds import ConstraintsFromBounds
+# from pymoo.gradient.automatic import AutomaticDifferentiation
+# from pymoo.indicators.kktpm import KKTPM
+# activate('autograd.numpy')
+
+# kktpm = KKTPM().calc(X, problem, ideal = ref_point)
+# print('KKTPM: ', kktpm)
 
 ##### Plotting
 from pymoo.visualization.scatter import Scatter
@@ -265,6 +342,13 @@ from mpl_toolkits.mplot3d import Axes3D  # Import for 3D plotting if needed
 import plotly.graph_objects as go
 
 fig = go.Figure()
+if diagnostic == "antagonistic":
+    blue_points = ref_pf_ints
+else:
+    blue_points_x = np.array([[i, 0, 0] for i in range(0, 11)])  # Points on x-axis
+    blue_points_y = np.array([[0, i, 0] for i in range(0, 11)])  # Points on y-axis
+    blue_points_z = np.array([[0, 0, i] for i in range(0, 11)])  # Points on z-axis
+    blue_points = np.vstack([blue_points_x, blue_points_y, blue_points_z])
 
 fig.add_trace(go.Scatter3d(
     x=opt_F[:, 0], y=opt_F[:, 1], z=opt_F[:, 2],
@@ -274,9 +358,9 @@ fig.add_trace(go.Scatter3d(
 ))
 
 fig.add_trace(go.Scatter3d(
-    x=true_pf[:, 0], y=true_pf[:, 1], z=true_pf[:, 2],
+    x=blue_points[:, 0], y=blue_points[:, 1], z=blue_points[:, 2],
     mode='markers',
-    marker=dict(size=5, color='blue', opacity=0.7),
+    marker=dict(size=5, color='blue', opacity=0.4),
     name='pareto_front'
 ))
 
@@ -286,10 +370,10 @@ fig.update_layout(
         yaxis_title='Objective 2',
         zaxis_title='Objective 3',
     ),
-    title=f'{alg}, {epsilon_type}, {epsilon}, {diagnostic} <br>Solutions (red) vs True Pareto Front (blue) <br>pop_size: {pop_size}, n_generations: {n_gen},<br>HV: {hv:.3f}, IGD: {igd:.3f}, spacing: {spacing:.3f}',
+    title=f'{alg_name}, {diagnostic} <br>Solutions (red) vs True Pareto Front (blue) <br>pop_size: {pop_size}, n_generations: {n_gen},<br>HV: {hv:.3f}, IGD: {igd:.3f}, spacing: {spacing:.3f}',
     legend=dict(x=0.8, y=0.9)
 )
 
-# Save to file or show
-fig.write_html(f'/home/shakiba/MultiObjectivePrediction/plots/standard_lexicase_3D_{alg}_{diagnostic}.html')
+#Save to file or show
+#fig.write_html(f'/home/shakiba/MultiObjectivePrediction/plots/{alg_name}_{diagnostic}_3D.html')
 fig.show()

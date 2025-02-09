@@ -6,7 +6,11 @@ import os
 import random
 
 from diagnostics_problem import DiagnosticProblem
-from algorithms import get_algorithm
+#from algorithms import get_algorithm
+from algorithms.Lexicase import create_lexicase
+from algorithms.NSGA2 import create_nsga2
+from algorithms.NSGA3 import create_nsga3
+from algorithms.MOEAD import create_moead
 
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.algorithms.moo.nsga3 import NSGA3
@@ -68,7 +72,6 @@ def ref_pf(problem, points_type):
 def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic = None, L = None, damp = None, seed = None, rdir = ""):
     
     runid = uuid.uuid4()
-    #for alg in ["Lexicase", "NSGA2"]:
 
     print("alg_name = ", alg_name, "S = ", S, "n_var = ", dim, "n_obj = ", dim, 'diagnostic = ', diagnostic, "L = ", L, "n_gen = ", n_gen, "damp = ", damp,
          "seed = ", seed, "rdir = ", rdir, "runid = ", runid)
@@ -79,15 +82,21 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic 
     #Define the algorithms
     
     if alg_name == "NSGA2":
-        algorithm = get_algorithm(alg_name = "NSGA2", pop_size = S)
+        algorithm = create_nsga2(pop_size = S)
     elif alg_name == "lex_std":
-        algorithm = get_algorithm(alg_name = "Lexicase", pop_size = S, epsilon_type = 'standard', epsilon = 0.0)
+        algorithm = create_lexicase(pop_size = S, epsilon_type = 'standard', epsilon = 0.0)
     elif alg_name == "lex_const":
-        algorithm = get_algorithm(alg_name = "Lexicase", pop_size = S, epsilon_type = 'constant', epsilon = 0.5)
+        algorithm = create_lexicase(pop_size = S, epsilon_type = 'constant', epsilon = 0.5)
     elif alg_name == "lex_semi":
-        algorithm = get_algorithm(alg_name = "Lexicase", pop_size = S, epsilon_type = 'semi-dynamic', epsilon = None)
+        algorithm = create_lexicase(pop_size = S, epsilon_type = 'semi-dynamic', epsilon = None)
     elif alg_name == "lex_dyn":
-        algorithm = get_algorithm(alg_name = "Lexicase", pop_size = S, epsilon_type = 'dynamic', epsilon = None)
+        algorithm = create_lexicase(pop_size = S, epsilon_type = 'dynamic', epsilon = None)
+    elif alg_name == "NSGA3":
+        ref_dirs = get_reference_directions("das-dennis", dim, n_partitions = 12)
+        algorithm = create_nsga3(pop_size = S, ref_dirs = ref_dirs)
+    elif alg_name == "MOEAD":
+        ref_dirs = get_reference_directions("das-dennis", dim, n_partitions = 12)
+        algorithm = create_moead(pop_size = S, ref_dirs = ref_dirs, n_neighbors = 15, prob_neighbor_mating = 0.7)
     else:
         raise ValueError("Invalid algorithm name / algorithm not implemented.")
 
@@ -111,53 +120,74 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic 
     assert len(X) == len(F), "X and F should have the same length"
     assert len(opt_X) == len(opt_F), "opt_X and opt_F should have the same length"
 
-    #Hypervolume calculation
+    ###### Performance Indicators ######
+
+    #Hypervolume
     # ref_point = np.array([L]*problem.n_var)
     # ind = Hypervolume(pf = opt_F, ref_point=ref_point)
     # hv = ind._do(opt_F)
     #hv_norm = hv / np.prod(ref_point)
 
+    #Inverted Generational Distance
     #true_pf = sample_true_pf(D = dim, L = L, sample_size = S)
-    ref_pf_ints = ref_pf(problem, points_type = 'ints')
-    ref_pf_corner = ref_pf(problem, points_type = 'corners')
-    ref_pf_middle = ref_pf(problem, points_type = 'middles')
-    ref_pf_zeros = np.array([[0]*dim])
+    if diagnostic == "antagonistic":
 
-    assert len(ref_pf_ints) == dim*(L) + 1
-    assert len(ref_pf_corner) == len(ref_pf_middle) == dim
+        ref_pf_ints = ref_pf(problem, points_type = 'ints')
+        ref_pf_corner = ref_pf(problem, points_type = 'corners')
+        ref_pf_middle = ref_pf(problem, points_type = 'middles')
+        ref_pf_zeros = np.array([[0]*dim])
+        ref_pf_ = ref_pf_ints
+        reference_pfs = ["corners", "middles", "zeros", "ints"]
+        igd = -1
 
-    reference_pfs = ["corners", "middles", "zeros", "ints"]
+        for p in reference_pfs:
 
-    for p in reference_pfs:
+            if p == "corners":
+                indigd = IGD(pf = ref_pf_corner)
+                igd_corner = indigd(opt_F)
+                
+            elif p == "middles":
+                indigd = IGD(pf = ref_pf_middle)
+                igd_middle = indigd(opt_F)
+                
+            elif p == "zeros":
+                indigd = IGD(pf = ref_pf_zeros)
+                igd_zeros = indigd(opt_F)
 
-        if p == "corners":
-            indgd_corner = GD(pf = ref_pf_corner)
-            indigd_corner = IGD(pf = ref_pf_corner)
-            gd_corner = indgd_corner(opt_F)
-            igd_corner = indigd_corner(opt_F)
-        
-        elif p == "middles":
-            indgd_middle = GD(pf = ref_pf_middle)
-            indigd_middle = IGD(pf = ref_pf_middle)
-            gd_middle = indgd_middle(opt_F)
-            igd_middle = indigd_middle(opt_F)
-        
-        elif p == "zeros":
-            indgd_zeros = GD(pf = ref_pf_zeros)
-            indigd_zeros = IGD(pf = ref_pf_zeros)
-            gd_zeros = indgd_zeros(opt_F)
-            igd_zeros = indigd_zeros(opt_F)
+            elif p == "ints":
+                indigd = IGD(pf = ref_pf_ints)
+                igd_ints = indigd(opt_F)
+                
+            else:
+                raise ValueError("Invalid reference pareto_front. Choose from 'corners', 'middles', 'zeros', 'ints'.")
+            
 
-        elif p == "ints":
-            indgd_ints = GD(pf = ref_pf_ints)
-            indigd_ints = IGD(pf = ref_pf_ints)
-            gd_ints = indgd_ints(opt_F)
-            igd_ints = indigd_ints(opt_F)
-        
-        else:
-            raise ValueError("Invalid reference pareto_front.")
+    elif diagnostic in ['exploit', 'structExploit', 'explore']:
+        ref_pf_ = np.array([-10]*dim)
+        indigd = IGD(pf = ref_pf_)
+        igd = indigd(opt_F)
+        igd_corner = igd_middle = igd_zeros = igd_ints = -1
 
+    elif diagnostic == 'weakDiversity':
+        arr = np.zeros((dim, dim))
+        np.fill_diagonal(arr, -10)
+        ref_pf_ = arr
+        indigd = IGD(pf = ref_pf_)
+        igd = indigd(opt_F)
+        igd_corner = igd_middle = igd_zeros = igd_ints = -1
 
+    elif diagnostic == 'diversity':
+        arr = np.full((dim, dim), -5)
+        np.fill_diagonal(arr, -10)
+        ref_pf_ = arr
+        indigd = IGD(pf = ref_pf_)
+        igd = indigd(opt_F)
+        igd_corner = igd_middle = igd_zeros = igd_ints = -1
+
+    else:
+        raise ValueError("Invalid diagnostic. Choose from 'exploit', 'structExploit', 'explore', 'diversity', 'weakDiversity', 'antagonistic'.")
+
+    #Spacing
     indspace = SpacingIndicator()
     if (len(opt_F) > 1): 
         spacing = indspace(opt_F)
@@ -165,8 +195,8 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic 
         spacing = -1 # spacing is not defined if there's only one soltuion on the pf
 
     result = {'alg_name': alg_name, 'S': S, 'dim':dim, 'n_gen':n_gen, 'diagnostic':diagnostic, 'L':L,
-                'GD_corners':float(gd_corner),'IGD_corners':float(igd_corner), 'GD_middles':float(gd_middle),'IGD_middles':float(igd_middle),
-                'GD_zeros':float(gd_zeros),'IGD_zeros':float(igd_zeros), 'GD_ints':float(gd_ints),'IGD_ints':float(igd_ints),
+                'IGD':float(igd), 'IGD_corners':float(igd_corner),'IGD_middles':float(igd_middle),
+                'IGD_zeros':float(igd_zeros),'IGD_ints':float(igd_ints),
                 'spacing':float(spacing), 'pf_size':len(opt_F), 'damp':damp, 'seed':seed, 'rdir':rdir}
     
     print(result)
@@ -189,16 +219,16 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Run a single comparison experiment')
-    parser.add_argument('-alg_name', type=str, default = 'lex_dyn', help='Algorithm to use')
+    parser.add_argument('-alg_name', type=str, default = 'NSGA2', help='Algorithm to use')
     parser.add_argument('-S', type=int, default = 100, help='Population size')
-    parser.add_argument('-dim', type=int, default = 5, help='Number of objectives/variables')
-    parser.add_argument('-n_gen', type=int, default = 50, help='Number of generations')
+    parser.add_argument('-dim', type=int, default = 3, help='Number of objectives/variables')
+    parser.add_argument('-n_gen', type=int, default = 100, help='Number of generations')
     parser.add_argument('-diagnostic', type=str, default = 'antagonistic', help='Diagnostic problem')
     parser.add_argument('-L', type=int, default = 10, help='Search space limit')
     parser.add_argument('-damp', type=float, default = 1.0, help='Dampening factor')
     #parser.add_argument('-epsilon', type=float, default = '0.0', help='Epsilon value')
     #parser.add_argument('-epsilon_type', type=str, default = 'constant', help='Epsilon type')
-    parser.add_argument('-seed', type=int, default = 14724, help='Random seed')
+    parser.add_argument('-seed', type=int, default = 0, help='Random seed')
     parser.add_argument('-rdir', type=str, default = '/home/shakiba/MultiObjectivePrediction/results/', help='Results directory')
     args = parser.parse_args()
 
