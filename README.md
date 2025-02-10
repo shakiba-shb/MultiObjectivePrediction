@@ -28,6 +28,8 @@ cd MultiObjectivePrediction
 
 `diagnostics_problem.py` contains code for six diagnostic fitness landscapes including exploitation, structured exploitation, exploration, weak diversity, diversity, and antagonistic. 
 
+`tests.py` contains unit tests for diagnostic problems. 
+
 `pymoo_lexicase.py` contains code for Lexicase selection. Lexicase selection is added manually through this file. 
 
 `single_comparison_experiment.py` contains code for a single experiment of one algorithm with one diagnostic problem. 
