@@ -25,8 +25,13 @@ cd MultiObjectivePrediction
 ```
 ### Files and Directories
 `./algorithms` contains all the algorithms in vestigated in our experiments. These algorithms are implemented in pymoo (except Lexicase Selection). 
+
 `diagnostics_problem.py` contains code for six diagnostic fitness landscapes including exploitation, structured exploitation, exploration, weak diversity, diversity, and antagonistic. 
+
 `pymoo_lexicase.py` contains code for Lexicase selection. Lexicase selection is added manually through this file. 
+
 `single_comparison_experiment.py` contains code for a single experiment of one algorithm with one diagnostic problem. 
-'submit_jobs.py' contains code for creating job files for running single experiments on the HPCC. 
+
+`submit_jobs.py` contains code for creating job files for running single experiments on the HPCC. 
+
 `data_analysis.ipynb` is the notebook used for analyzing results and creating heatmaps. 
