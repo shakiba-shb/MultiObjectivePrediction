@@ -89,9 +89,9 @@ def ref_pf(problem, points_type):
 ##### Parameters
 # Problem parameters
 pop_size = 10
-n_var = 4
+n_var = 5
 n_obj = n_var
-n_gen = 100
+n_gen = 10
 alg_name = "lex_std"
 diagnostic = "exploit"
 xl = 0
@@ -103,7 +103,7 @@ epsilon_type = 'constant'
 epsilon = 0.0
 
 # Parameters for NSGA3 and MOEA/D
-#ref_dirs = get_reference_directions("das-dennis", n_var, n_partitions=12) # Get reference directions for NSGA3
+#ref_dirs = get_reference_directions("das-dennis", n_var, n_partitions=10) # Get reference directions for NSGA3
 #ref_dirs = get_reference_directions("energy", n_var, n_points=20100, seed=1)
 n_neighbors = 15
 prob_neighbor_mating = 0.7
@@ -137,7 +137,12 @@ elif alg_name == "lex_semi":
 elif alg_name == "lex_dyn":
     algorithm = create_lexicase(pop_size = pop_size, epsilon_type = 'dynamic', epsilon = None)
 elif alg_name == "NSGA3":
-    ref_dirs = get_reference_directions("das-dennis", n_obj, n_partitions = 12)
+    #ref_dirs = get_reference_directions("das-dennis", n_obj, n_points = 135)
+    ref_dirs = get_reference_directions(
+    "multi-layer",
+    get_reference_directions("das-dennis", n_var, n_partitions=2, scaling=1.0),
+    get_reference_directions("das-dennis", n_var, n_partitions=1, scaling=0.5))
+    print('# ref_dirs: ', len(ref_dirs))
     algorithm = create_nsga3(pop_size = pop_size, ref_dirs = ref_dirs)
 elif alg_name == "MOEAD":
     ref_dirs = get_reference_directions("das-dennis", n_obj, n_partitions = 12)
@@ -153,12 +158,14 @@ res = minimize(problem,
                algorithm,
                termination,
                seed = 0,
-               save_history=True,
+               save_history=False,
                verbose=True)
 
 ##### Optimization results
-X = res.history[-1].pop.get('X') # Genotypes in final population
-F = res.history[-1].pop.get('F') # Phenotypes in final population
+# X_h = res.history[-1].pop.get('X') # Genotypes in final population
+# F_h = res.history[-1].pop.get('F') # Phenotypes in final population
+X = res.pop.get('X') # Genotypes in final population
+F = res.pop.get('F') # Phenotypes in final population
 opt_X = res.opt.get("X") # Optimal Genotypes (on the PF)
 opt_F = res.opt.get("F") # Optimal Phenotypes (on the PF)
 
@@ -339,41 +346,41 @@ from mpl_toolkits.mplot3d import Axes3D  # Import for 3D plotting if needed
 # else:
 #     print("Cannot plot data with dimensions higher than 3.")
 
-import plotly.graph_objects as go
+# import plotly.graph_objects as go
 
-fig = go.Figure()
-if diagnostic == "antagonistic":
-    blue_points = ref_pf_ints
-else:
-    blue_points_x = np.array([[i, 0, 0] for i in range(0, 11)])  # Points on x-axis
-    blue_points_y = np.array([[0, i, 0] for i in range(0, 11)])  # Points on y-axis
-    blue_points_z = np.array([[0, 0, i] for i in range(0, 11)])  # Points on z-axis
-    blue_points = np.vstack([blue_points_x, blue_points_y, blue_points_z])
+# fig = go.Figure()
+# if diagnostic == "antagonistic":
+#     blue_points = ref_pf_ints
+# else:
+#     blue_points_x = np.array([[i, 0, 0] for i in range(0, 11)])  # Points on x-axis
+#     blue_points_y = np.array([[0, i, 0] for i in range(0, 11)])  # Points on y-axis
+#     blue_points_z = np.array([[0, 0, i] for i in range(0, 11)])  # Points on z-axis
+#     blue_points = np.vstack([blue_points_x, blue_points_y, blue_points_z])
 
-fig.add_trace(go.Scatter3d(
-    x=opt_F[:, 0], y=opt_F[:, 1], z=opt_F[:, 2],
-    mode='markers',
-    marker=dict(size=5, color='red', opacity=0.7),
-    name='opt_F'
-))
+# fig.add_trace(go.Scatter3d(
+#     x=opt_F[:, 0], y=opt_F[:, 1], z=opt_F[:, 2],
+#     mode='markers',
+#     marker=dict(size=5, color='red', opacity=0.7),
+#     name='opt_F'
+# ))
 
-fig.add_trace(go.Scatter3d(
-    x=blue_points[:, 0], y=blue_points[:, 1], z=blue_points[:, 2],
-    mode='markers',
-    marker=dict(size=5, color='blue', opacity=0.4),
-    name='pareto_front'
-))
+# fig.add_trace(go.Scatter3d(
+#     x=blue_points[:, 0], y=blue_points[:, 1], z=blue_points[:, 2],
+#     mode='markers',
+#     marker=dict(size=5, color='blue', opacity=0.4),
+#     name='pareto_front'
+# ))
 
-fig.update_layout(
-    scene=dict(
-        xaxis_title='Objective 1',
-        yaxis_title='Objective 2',
-        zaxis_title='Objective 3',
-    ),
-    title=f'{alg_name}, {diagnostic} <br>Solutions (red) vs True Pareto Front (blue) <br>pop_size: {pop_size}, n_generations: {n_gen},<br>HV: {hv:.3f}, IGD: {igd:.3f}, spacing: {spacing:.3f}',
-    legend=dict(x=0.8, y=0.9)
-)
+# fig.update_layout(
+#     scene=dict(
+#         xaxis_title='Objective 1',
+#         yaxis_title='Objective 2',
+#         zaxis_title='Objective 3',
+#     ),
+#     title=f'{alg_name}, {diagnostic} <br>Solutions (red) vs True Pareto Front (blue) <br>pop_size: {pop_size}, n_generations: {n_gen},<br>HV: {hv:.3f}, IGD: {igd:.3f}, spacing: {spacing:.3f}',
+#     legend=dict(x=0.8, y=0.9)
+# )
 
 #Save to file or show
 #fig.write_html(f'/home/shakiba/MultiObjectivePrediction/plots/{alg_name}_{diagnostic}_3D.html')
-fig.show()
+#fig.show()

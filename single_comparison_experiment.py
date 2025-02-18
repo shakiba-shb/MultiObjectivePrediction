@@ -108,12 +108,14 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic 
                 algorithm,
                 termination,
                 seed = seed,
-                save_history=True,
+                save_history=False,
                 verbose=True)
     
     np.set_printoptions(precision=2, suppress=True)
-    X = res.history[-1].pop.get('X') #final genotypes
-    F = res.history[-1].pop.get('F') #final phenotypes
+    # X = res.history[-1].pop.get('X') #final genotypes
+    # F = res.history[-1].pop.get('F') #final phenotypes
+    X = res.pop.get('X') #final genotypes
+    F = res.pop.get('F') #final phenotypes
     opt_X = res.opt.get("X") #final solutions genotypes (pf)
     opt_F = res.opt.get("F") #final solutions phenotypes (pf)
 
