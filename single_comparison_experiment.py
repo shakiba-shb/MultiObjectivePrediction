@@ -180,6 +180,8 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic 
         ref_pf_ = np.array([-10]*dim)
         indigd = IGD(pf = ref_pf_)
         igd = indigd(opt_F)
+        indgd = GD(pf = ref_pf_)
+        gd = indgd(opt_F)
 
     elif diagnostic == 'weakDiversity':
         arr = np.zeros((dim, dim))
