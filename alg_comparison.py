@@ -93,7 +93,7 @@ n_var = 5
 n_obj = n_var
 n_gen = 10
 alg_name = "lex_std"
-diagnostic = "exploit"
+diagnostic = "antagonistic"
 xl = 0
 xu = 10
 damp = 1
@@ -239,31 +239,42 @@ if diagnostic == "antagonistic":
 
         if p == "corners":
             indigd = IGD(pf = ref_pf_corner)
-            igd_corner = indigd(opt_F)
+            igd = igd_corner = indigd(opt_F)
+            indgd = GD(pf = ref_pf_corner)
+            gd = gd_corner = indgd(opt_F)
             
         elif p == "middles":
             indigd = IGD(pf = ref_pf_middle)
-            igd_middle = indigd(opt_F)
+            igd = igd_middle = indigd(opt_F)
+            indgd = GD(pf = ref_pf_middle)
+            gd = gd_middle = indgd(opt_F)
             
         elif p == "zeros":
             indigd = IGD(pf = ref_pf_zeros)
-            igd_zeros = indigd(opt_F)
+            igd = igd_zeros = indigd(opt_F)
+            indgd = GD(pf = ref_pf_zeros)
+            gd = gd_zeros = indgd(opt_F)
 
         elif p == "ints":
             indigd = IGD(pf = ref_pf_ints)
-            igd_ints = indigd(opt_F)
+            igd = igd_ints = indigd(opt_F)
+            indgd = GD(pf = ref_pf_ints)
+            gd = gd_ints = indgd(opt_F)
             
         else:
             raise ValueError("Invalid reference pareto_front. Choose from 'corners', 'middles', 'zeros', 'ints'.")
 
-        igd = indigd(opt_F)
-        print(f"IGD_{p}: ", igd)
+        print(f"GD_{p}: {gd}")
+        print(f"IGD_{p}: {igd}")
 
 elif diagnostic in ['exploit', 'structExploit', 'explore']:
     ref_pf_ = np.array([-10]*n_obj)
     indigd = IGD(pf = ref_pf_)
     igd = indigd(opt_F)
+    indgd = GD(pf = ref_pf_)   
+    gd = indgd(opt_F)
     print(f"IGD: ", igd)
+    print(f"GD: ", gd)
 
 elif diagnostic == 'weakDiversity':
     arr = np.zeros((n_obj, n_obj))
@@ -271,7 +282,10 @@ elif diagnostic == 'weakDiversity':
     ref_pf_ = arr
     indigd = IGD(pf = ref_pf_)
     igd = indigd(opt_F)
+    intgd = GD(pf = ref_pf_)
+    gd = intgd(opt_F)
     print(f"IGD: ", igd)
+    print(f"GD: ", gd)
 
 elif diagnostic == 'diversity':
     arr = np.full((n_obj, n_obj), -5)
@@ -279,7 +293,10 @@ elif diagnostic == 'diversity':
     ref_pf_ = arr
     indigd = IGD(pf = ref_pf_)
     igd = indigd(opt_F)
+    indgd = GD(pf = ref_pf_)
+    gd = indgd(opt_F)
     print(f"IGD: ", igd)
+    print(f"GD: ", gd)
 
 else:
     raise ValueError("Invalid diagnostic. Choose from 'exploit', 'structExploit', 'explore', 'diversity', 'weakDiversity', 'antagonistic'.")

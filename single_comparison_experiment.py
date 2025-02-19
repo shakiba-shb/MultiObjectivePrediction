@@ -132,6 +132,11 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic 
 
     #Inverted Generational Distance
     #true_pf = sample_true_pf(D = dim, L = L, sample_size = S)
+    igd = float('inf')
+    gd = float('inf')
+    igd_corner = igd_middle = igd_zeros = igd_ints = float('inf')
+    gd_corner = gd_middle = gd_zeros = gd_ints = float('inf')
+
     if diagnostic == "antagonistic":
 
         ref_pf_ints = ref_pf(problem, points_type = 'ints')
@@ -140,25 +145,32 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic 
         ref_pf_zeros = np.array([[0]*dim])
         ref_pf_ = ref_pf_ints
         reference_pfs = ["corners", "middles", "zeros", "ints"]
-        igd = -1
 
         for p in reference_pfs:
 
             if p == "corners":
                 indigd = IGD(pf = ref_pf_corner)
                 igd_corner = indigd(opt_F)
+                indgd = GD(pf = ref_pf_corner)
+                gd_corner = indgd(opt_F)
                 
             elif p == "middles":
                 indigd = IGD(pf = ref_pf_middle)
                 igd_middle = indigd(opt_F)
+                indgd = GD(pf = ref_pf_middle)
+                gd_middle = indgd(opt_F)
                 
             elif p == "zeros":
                 indigd = IGD(pf = ref_pf_zeros)
                 igd_zeros = indigd(opt_F)
+                indgd = GD(pf = ref_pf_zeros)
+                gd_zeros = indgd(opt_F)
 
             elif p == "ints":
                 indigd = IGD(pf = ref_pf_ints)
                 igd_ints = indigd(opt_F)
+                indgd = GD(pf = ref_pf_ints)
+                gd_ints = indgd(opt_F)
                 
             else:
                 raise ValueError("Invalid reference pareto_front. Choose from 'corners', 'middles', 'zeros', 'ints'.")
@@ -168,7 +180,6 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic 
         ref_pf_ = np.array([-10]*dim)
         indigd = IGD(pf = ref_pf_)
         igd = indigd(opt_F)
-        igd_corner = igd_middle = igd_zeros = igd_ints = -1
 
     elif diagnostic == 'weakDiversity':
         arr = np.zeros((dim, dim))
@@ -176,7 +187,8 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic 
         ref_pf_ = arr
         indigd = IGD(pf = ref_pf_)
         igd = indigd(opt_F)
-        igd_corner = igd_middle = igd_zeros = igd_ints = -1
+        indgd = GD(pf = ref_pf_)
+        gd = indgd(opt_F)
 
     elif diagnostic == 'diversity':
         arr = np.full((dim, dim), -5)
@@ -184,7 +196,8 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic 
         ref_pf_ = arr
         indigd = IGD(pf = ref_pf_)
         igd = indigd(opt_F)
-        igd_corner = igd_middle = igd_zeros = igd_ints = -1
+        indgd = GD(pf = ref_pf_)
+        gd = indgd(opt_F)
 
     else:
         raise ValueError("Invalid diagnostic. Choose from 'exploit', 'structExploit', 'explore', 'diversity', 'weakDiversity', 'antagonistic'.")
@@ -197,8 +210,8 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic 
         spacing = -1 # spacing is not defined if there's only one soltuion on the pf
 
     result = {'alg_name': alg_name, 'S': S, 'dim':dim, 'n_gen':n_gen, 'diagnostic':diagnostic, 'L':L,
-                'IGD':float(igd), 'IGD_corners':float(igd_corner),'IGD_middles':float(igd_middle),
-                'IGD_zeros':float(igd_zeros),'IGD_ints':float(igd_ints),
+                'IGD':float(igd), 'IGD_corners':float(igd_corner),'IGD_middles':float(igd_middle),'IGD_zeros':float(igd_zeros),'IGD_ints':float(igd_ints),  
+                'GD':float(gd), 'GD_corners':float(gd_corner),'GD_middles':float(gd_middle),'GD_zeros':float(gd_zeros),'GD_ints':float(gd_ints),
                 'spacing':float(spacing), 'pf_size':len(opt_F), 'damp':damp, 'seed':seed, 'rdir':rdir}
     
     print(result)
@@ -225,7 +238,7 @@ if __name__ == "__main__":
     parser.add_argument('-S', type=int, default = 100, help='Population size')
     parser.add_argument('-dim', type=int, default = 3, help='Number of objectives/variables')
     parser.add_argument('-n_gen', type=int, default = 100, help='Number of generations')
-    parser.add_argument('-diagnostic', type=str, default = 'antagonistic', help='Diagnostic problem')
+    parser.add_argument('-diagnostic', type=str, default = 'exploit', help='Diagnostic problem')
     parser.add_argument('-L', type=int, default = 10, help='Search space limit')
     parser.add_argument('-damp', type=float, default = 1.0, help='Dampening factor')
     #parser.add_argument('-epsilon', type=float, default = '0.0', help='Epsilon value')
