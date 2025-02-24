@@ -92,11 +92,17 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic 
     elif alg_name == "lex_dyn":
         algorithm = create_lexicase(pop_size = S, epsilon_type = 'dynamic', epsilon = None)
     elif alg_name == "NSGA3":
-        ref_dirs = get_reference_directions("das-dennis", dim, n_partitions = 12)
+        ref_dirs = get_reference_directions(
+        "multi-layer",
+        get_reference_directions("das-dennis", dim, n_partitions=2, scaling=1.0),
+        get_reference_directions("das-dennis", dim, n_partitions=1, scaling=0.5))
         algorithm = create_nsga3(pop_size = S, ref_dirs = ref_dirs)
     elif alg_name == "MOEAD":
-        ref_dirs = get_reference_directions("das-dennis", dim, n_partitions = 12)
-        algorithm = create_moead(pop_size = S, ref_dirs = ref_dirs, n_neighbors = 15, prob_neighbor_mating = 0.7)
+        ref_dirs = get_reference_directions(
+        "multi-layer",
+        get_reference_directions("das-dennis", dim, n_partitions=2, scaling=1.0),
+        get_reference_directions("das-dennis", dim, n_partitions=1, scaling=0.5))
+        algorithm = create_moead(pop_size = S, ref_dirs = ref_dirs, n_neighbors = 20, prob_neighbor_mating = 0.7)
     else:
         raise ValueError("Invalid algorithm name / algorithm not implemented.")
 

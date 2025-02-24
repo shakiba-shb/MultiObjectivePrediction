@@ -105,7 +105,7 @@ epsilon = 0.0
 # Parameters for NSGA3 and MOEA/D
 #ref_dirs = get_reference_directions("das-dennis", n_var, n_partitions=10) # Get reference directions for NSGA3
 #ref_dirs = get_reference_directions("energy", n_var, n_points=20100, seed=1)
-n_neighbors = 15
+n_neighbors = 20
 prob_neighbor_mating = 0.7
 
 ##### Define the problem
@@ -137,16 +137,21 @@ elif alg_name == "lex_semi":
 elif alg_name == "lex_dyn":
     algorithm = create_lexicase(pop_size = pop_size, epsilon_type = 'dynamic', epsilon = None)
 elif alg_name == "NSGA3":
-    #ref_dirs = get_reference_directions("das-dennis", n_obj, n_points = 135)
+    #ref_dirs = get_reference_directions("das-dennis", n_obj, n_partitions=6)
     ref_dirs = get_reference_directions(
     "multi-layer",
     get_reference_directions("das-dennis", n_var, n_partitions=2, scaling=1.0),
     get_reference_directions("das-dennis", n_var, n_partitions=1, scaling=0.5))
+    # #get_reference_directions("das-dennis", n_var, n_partitions=1, scaling=0.25))
     print('# ref_dirs: ', len(ref_dirs))
     algorithm = create_nsga3(pop_size = pop_size, ref_dirs = ref_dirs)
 elif alg_name == "MOEAD":
-    ref_dirs = get_reference_directions("das-dennis", n_obj, n_partitions = 12)
-    algorithm = create_moead(pop_size = pop_size, ref_dirs = ref_dirs, n_neighbors = 15, prob_neighbor_mating = 0.7)
+    #ref_dirs = get_reference_directions("das-dennis", n_obj, n_partitions = 12)
+    ref_dirs = get_reference_directions(
+    "multi-layer",
+    get_reference_directions("das-dennis", n_var, n_partitions=2, scaling=1.0),
+    get_reference_directions("das-dennis", n_var, n_partitions=1, scaling=0.5))
+    algorithm = create_moead(pop_size = pop_size, ref_dirs = ref_dirs, n_neighbors = n_neighbors, prob_neighbor_mating = prob_neighbor_mating)
 else:
     raise ValueError("Invalid algorithm name / algorithm not implemented.")
 
@@ -176,6 +181,12 @@ print("opt_X: ", opt_X)
 print("opt_F: ", opt_F)
 print("pf_size: ", len(opt_F))
 
+if diagnostic in ["exploit", "structExploit", "explore"]:
+    score = np.min(np.mean(F, axis=1))
+elif diagnostic in ["weakDiversity", "diversity", "antagonistic"]:
+    score = np.sum(np.min(F, axis=0) < -9)
+
+print("Final population score: ", score)
 
 ##### Hypervolume
 from pymoo.indicators.hv import Hypervolume
@@ -197,34 +208,6 @@ print('HV: ', hv)
 ##### Generational distance
 from pymoo.indicators.gd import GD
 from pymoo.indicators.igd import IGD
-
-# 2d example
-# if opt_F.shape[1] == 2:
-#     p1 = (0, 0)
-#     p2 = (10, -10)
-#     p3 = (-10, 10)
-#     normal_vector, d = find_hyperplane(p1, p2, p3) # Calculate the normal vector and d value of hyperplane including points p(i)
-
-# 3D example
-# if opt_F.shape[1] == 3:
-#     p1 = (0, 0, 0)
-#     p2 = (-10, -10, 10)
-#     p3 = (10, -10, -10)
-#     p4 = (-10, 10, -10)
-#     normal_vector, d = find_hyperplane2(p2, p3, p4) # Calculate the normal vector and d value of hyperplane including points p(i)
-
-# p1 = tuple([0]*n_var)
-# points = generate_points(xu, n_var)    
-# normal_vector, d = find_hyperplane(p1, *points)
-
-# true_pf = find_true_pf(normal_vector = normal_vector, num_points = pop_size) # Generate Pareto front from normal vector
-# #true_pf = problem.pareto_front
-    
-# true_pf = sample_true_pf(n_obj, xu, pop_size)
-# ref_pf_corner = ref_pf(n_obj, xu)
-# ref_pf_middle = ref_pf(n_obj, xu/2)
-# ref_pf_zeros = np.array([0]*n_obj)
-# ref_pf_ints = ref_pf_all(n_obj, xu)
 
 if diagnostic == "antagonistic":
 
@@ -310,29 +293,19 @@ else:
     spacing = -1
 print("Spacing: ", spacing)
 
-##### KKTPM Indicator #####
-# from pymoo.gradient import activate
-# from pymoo.constraints.from_bounds import ConstraintsFromBounds
-# from pymoo.gradient.automatic import AutomaticDifferentiation
-# from pymoo.indicators.kktpm import KKTPM
-# activate('autograd.numpy')
-
-# kktpm = KKTPM().calc(X, problem, ideal = ref_point)
-# print('KKTPM: ', kktpm)
-
 ##### Plotting
-from pymoo.visualization.scatter import Scatter
-#plot = Scatter().add(F).save("nsga32d.png")
-from pymoo.visualization.star_coordinate import StarCoordinate
-from pymoo.indicators.hv import Hypervolume
-# StarCoordinate().add(opt_F).save("star_pareto")
-# StarCoordinate().add(true_pf).save("star_true_pareto")
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D  # Import for 3D plotting if needed
+# from pymoo.visualization.scatter import Scatter
+# #plot = Scatter().add(F).save("nsga32d.png")
+# from pymoo.visualization.star_coordinate import StarCoordinate
+# from pymoo.indicators.hv import Hypervolume
+# # StarCoordinate().add(opt_F).save("star_pareto")
+# # StarCoordinate().add(true_pf).save("star_true_pareto")
+# import matplotlib.pyplot as plt
+# from mpl_toolkits.mplot3d import Axes3D  # Import for 3D plotting if needed
 
-# Ensure the two sets of points are numpy arrays
+# #Ensure the two sets of points are numpy arrays
 # opt_F = np.array(opt_F)
-# true_pf = np.array(true_pf)
+# true_pf = np.array(ref_pf_)
 
 # if opt_F.shape[1] == 2:  # 2D plotting
 #     plt.figure(figsize=(8, 6))
@@ -358,7 +331,7 @@ from mpl_toolkits.mplot3d import Axes3D  # Import for 3D plotting if needed
 #     ax.set_title(f'plot of solutions vs true pareto front (3D)\npop_size: {pop_size}, n_generations: {n_gen}\nHV: {hv:.3f}, GD: {gd:.3f}')
 #     ax.legend()
 #     plt.grid()
-#     plt.savefig(f'/home/shakiba/MultiObjectivePrediction/plots/{alg}_pfs_3D_test.png')
+#     plt.savefig(f'/home/shakiba/MultiObjectivePrediction/plots/{alg_name}_pfs_3D_test.png')
 
 # else:
 #     print("Cannot plot data with dimensions higher than 3.")
@@ -398,6 +371,35 @@ from mpl_toolkits.mplot3d import Axes3D  # Import for 3D plotting if needed
 #     legend=dict(x=0.8, y=0.9)
 # )
 
-#Save to file or show
-#fig.write_html(f'/home/shakiba/MultiObjectivePrediction/plots/{alg_name}_{diagnostic}_3D.html')
-#fig.show()
+# #Save to file or show
+# #fig.write_html(f'/home/shakiba/MultiObjectivePrediction/plots/{alg_name}_{diagnostic}_3D.html')
+# fig.show()
+
+
+# 2d example
+# if opt_F.shape[1] == 2:
+#     p1 = (0, 0)
+#     p2 = (10, -10)
+#     p3 = (-10, 10)
+#     normal_vector, d = find_hyperplane(p1, p2, p3) # Calculate the normal vector and d value of hyperplane including points p(i)
+
+# 3D example
+# if opt_F.shape[1] == 3:
+#     p1 = (0, 0, 0)
+#     p2 = (-10, -10, 10)
+#     p3 = (10, -10, -10)
+#     p4 = (-10, 10, -10)
+#     normal_vector, d = find_hyperplane2(p2, p3, p4) # Calculate the normal vector and d value of hyperplane including points p(i)
+
+# p1 = tuple([0]*n_var)
+# points = generate_points(xu, n_var)    
+# normal_vector, d = find_hyperplane(p1, *points)
+
+# true_pf = find_true_pf(normal_vector = normal_vector, num_points = pop_size) # Generate Pareto front from normal vector
+# #true_pf = problem.pareto_front
+    
+# true_pf = sample_true_pf(n_obj, xu, pop_size)
+# ref_pf_corner = ref_pf(n_obj, xu)
+# ref_pf_middle = ref_pf(n_obj, xu/2)
+# ref_pf_zeros = np.array([0]*n_obj)
+# ref_pf_ints = ref_pf_all(n_obj, xu)
