@@ -85,6 +85,38 @@ def ref_pf(problem, points_type):
 
     return np.array(list(_points))
 
+def get_ref_dirs(m):
+    if m == 3:
+        ref_dirs = get_reference_directions("das-dennis", m, n_partitions=12)
+    elif m == 5:
+        ref_dirs = get_reference_directions("das-dennis", m, n_partitions=6)
+    elif m == 8:
+        ref_dirs = get_reference_directions(
+        "multi-layer",
+        get_reference_directions("das-dennis", m, n_partitions=3, scaling=1.0),
+        get_reference_directions("das-dennis", m, n_partitions=2, scaling=0.5))
+    elif m == 10:
+        ref_dirs = get_reference_directions(
+        "multi-layer",
+        get_reference_directions("das-dennis", m, n_partitions=3, scaling=1.0),
+        get_reference_directions("das-dennis", m, n_partitions=2, scaling=0.5))
+    elif m == 15:
+        ref_dirs = get_reference_directions(
+        "multi-layer",
+        get_reference_directions("das-dennis", m, n_partitions=2, scaling=1.0),
+        get_reference_directions("das-dennis", m, n_partitions=1, scaling=0.5))
+    elif m > 15:
+        ref_dirs = get_reference_directions(
+        "multi-layer",
+        get_reference_directions("das-dennis", m, n_partitions=1, scaling=1.0),
+        get_reference_directions("das-dennis", m, n_partitions=1, scaling=0.75),
+        get_reference_directions("das-dennis", m, n_partitions=1, scaling=0.5),
+        get_reference_directions("das-dennis", m, n_partitions=1, scaling=0.25),
+        get_reference_directions("das-dennis", m, n_partitions=1, scaling=0.1))
+    else:
+        raise ValueError("Reference direction for this number of objectives not defined.")
+    
+    return ref_dirs
 
 ##### Parameters
 # Problem parameters
@@ -137,21 +169,11 @@ elif alg_name == "lex_semi":
 elif alg_name == "lex_dyn":
     algorithm = create_lexicase(pop_size = pop_size, epsilon_type = 'dynamic', epsilon = None)
 elif alg_name == "NSGA3":
-    #ref_dirs = get_reference_directions("das-dennis", n_obj, n_partitions=6)
-    ref_dirs = get_reference_directions(
-    "multi-layer",
-    get_reference_directions("das-dennis", n_var, n_partitions=2, scaling=1.0),
-    get_reference_directions("das-dennis", n_var, n_partitions=1, scaling=0.5))
-    # #get_reference_directions("das-dennis", n_var, n_partitions=1, scaling=0.25))
-    print('# ref_dirs: ', len(ref_dirs))
-    algorithm = create_nsga3(pop_size = pop_size, ref_dirs = ref_dirs)
+    ref_dirs = get_ref_dirs(n_obj)
+    algorithm = create_nsga3(pop_size = ((len(ref_dirs) // 4) + 1) * 4, ref_dirs = ref_dirs)
 elif alg_name == "MOEAD":
-    #ref_dirs = get_reference_directions("das-dennis", n_obj, n_partitions = 12)
-    ref_dirs = get_reference_directions(
-    "multi-layer",
-    get_reference_directions("das-dennis", n_var, n_partitions=2, scaling=1.0),
-    get_reference_directions("das-dennis", n_var, n_partitions=1, scaling=0.5))
-    algorithm = create_moead(pop_size = pop_size, ref_dirs = ref_dirs, n_neighbors = n_neighbors, prob_neighbor_mating = prob_neighbor_mating)
+    ref_dirs = get_ref_dirs(n_obj)
+    algorithm = create_moead(ref_dirs = ref_dirs, n_neighbors = n_neighbors, prob_neighbor_mating = prob_neighbor_mating)
 else:
     raise ValueError("Invalid algorithm name / algorithm not implemented.")
 
@@ -374,32 +396,3 @@ print("Spacing: ", spacing)
 # #Save to file or show
 # #fig.write_html(f'/home/shakiba/MultiObjectivePrediction/plots/{alg_name}_{diagnostic}_3D.html')
 # fig.show()
-
-
-# 2d example
-# if opt_F.shape[1] == 2:
-#     p1 = (0, 0)
-#     p2 = (10, -10)
-#     p3 = (-10, 10)
-#     normal_vector, d = find_hyperplane(p1, p2, p3) # Calculate the normal vector and d value of hyperplane including points p(i)
-
-# 3D example
-# if opt_F.shape[1] == 3:
-#     p1 = (0, 0, 0)
-#     p2 = (-10, -10, 10)
-#     p3 = (10, -10, -10)
-#     p4 = (-10, 10, -10)
-#     normal_vector, d = find_hyperplane2(p2, p3, p4) # Calculate the normal vector and d value of hyperplane including points p(i)
-
-# p1 = tuple([0]*n_var)
-# points = generate_points(xu, n_var)    
-# normal_vector, d = find_hyperplane(p1, *points)
-
-# true_pf = find_true_pf(normal_vector = normal_vector, num_points = pop_size) # Generate Pareto front from normal vector
-# #true_pf = problem.pareto_front
-    
-# true_pf = sample_true_pf(n_obj, xu, pop_size)
-# ref_pf_corner = ref_pf(n_obj, xu)
-# ref_pf_middle = ref_pf(n_obj, xu/2)
-# ref_pf_zeros = np.array([0]*n_obj)
-# ref_pf_ints = ref_pf_all(n_obj, xu)

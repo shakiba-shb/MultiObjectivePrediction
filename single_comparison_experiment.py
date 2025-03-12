@@ -69,6 +69,39 @@ def ref_pf(problem, points_type):
 
     return np.array(list(_points))
 
+def get_ref_dirs(m):
+    if m == 3:
+        ref_dirs = get_reference_directions("das-dennis", m, n_partitions=12)
+    elif m == 5:
+        ref_dirs = get_reference_directions("das-dennis", m, n_partitions=6)
+    elif m == 8:
+        ref_dirs = get_reference_directions(
+        "multi-layer",
+        get_reference_directions("das-dennis", m, n_partitions=3, scaling=1.0),
+        get_reference_directions("das-dennis", m, n_partitions=2, scaling=0.5))
+    elif m == 10:
+        ref_dirs = get_reference_directions(
+        "multi-layer",
+        get_reference_directions("das-dennis", m, n_partitions=3, scaling=1.0),
+        get_reference_directions("das-dennis", m, n_partitions=2, scaling=0.5))
+    elif m == 15:
+        ref_dirs = get_reference_directions(
+        "multi-layer",
+        get_reference_directions("das-dennis", m, n_partitions=2, scaling=1.0),
+        get_reference_directions("das-dennis", m, n_partitions=1, scaling=0.5))
+    elif m > 15:
+        ref_dirs = get_reference_directions(
+        "multi-layer",
+        get_reference_directions("das-dennis", m, n_partitions=1, scaling=1.0),
+        get_reference_directions("das-dennis", m, n_partitions=1, scaling=0.75),
+        get_reference_directions("das-dennis", m, n_partitions=1, scaling=0.5),
+        get_reference_directions("das-dennis", m, n_partitions=1, scaling=0.25),
+        get_reference_directions("das-dennis", m, n_partitions=1, scaling=0.1))
+    else:
+        raise ValueError("Reference direction for this number of objectives not defined.")
+    
+    return ref_dirs
+
 def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic = None, L = None, damp = None, seed = None, rdir = ""):
     
     runid = uuid.uuid4()
@@ -92,17 +125,13 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic 
     elif alg_name == "lex_dyn":
         algorithm = create_lexicase(pop_size = S, epsilon_type = 'dynamic', epsilon = None)
     elif alg_name == "NSGA3":
-        ref_dirs = get_reference_directions(
-        "multi-layer",
-        get_reference_directions("das-dennis", dim, n_partitions=2, scaling=1.0),
-        get_reference_directions("das-dennis", dim, n_partitions=1, scaling=0.5))
-        algorithm = create_nsga3(pop_size = S, ref_dirs = ref_dirs)
+        ref_dirs = get_ref_dirs(dim)
+        S = ((len(ref_dirs) // 4) + 1) * 4
+        algorithm = create_nsga3(pop_size = S , ref_dirs = ref_dirs)
     elif alg_name == "MOEAD":
-        ref_dirs = get_reference_directions(
-        "multi-layer",
-        get_reference_directions("das-dennis", dim, n_partitions=2, scaling=1.0),
-        get_reference_directions("das-dennis", dim, n_partitions=1, scaling=0.5))
-        algorithm = create_moead(pop_size = S, ref_dirs = ref_dirs, n_neighbors = 20, prob_neighbor_mating = 0.7)
+        ref_dirs = get_ref_dirs(dim)
+        S = len(ref_dirs)
+        algorithm = create_moead(ref_dirs = ref_dirs, n_neighbors = 20, prob_neighbor_mating = 0.7)
     else:
         raise ValueError("Invalid algorithm name / algorithm not implemented.")
 
@@ -242,7 +271,7 @@ def experiment (alg_name = None, S = None, dim = None, n_gen = None, diagnostic 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Run a single comparison experiment')
-    parser.add_argument('-alg_name', type=str, default = 'NSGA2', help='Algorithm to use')
+    parser.add_argument('-alg_name', type=str, default = 'NSGA3', help='Algorithm to use')
     parser.add_argument('-S', type=int, default = 100, help='Population size')
     parser.add_argument('-dim', type=int, default = 3, help='Number of objectives/variables')
     parser.add_argument('-n_gen', type=int, default = 100, help='Number of generations')
